@@ -1,2 +1,7 @@
 #emacs or vim temp files
 *~
+#object files and compilation stuff
+*.o
+*.fd
+*.img
+*.iso
