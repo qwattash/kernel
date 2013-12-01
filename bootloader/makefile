@@ -1,16 +1,16 @@
-all: clean boot.iso
+all: clean boot.vdi
 
-boot.iso: boot.fd
-	mkdir boot
+boot.vdi: boot.fd
+    # Create a vdi from raw boot.sect.
+	rm -f boot/boot.vdi
 	cp boot.fd boot/
-	mkisofs -b boot/boot.fd -V bootv0 -o boot.iso .
+    # Fixed uuid allows easy testing with VirtualBox
+	VBoxManage convertfromraw  --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI boot.fd boot/boot.vdi
 
 boot.fd: boot.sect
-#pad bootsectro to be 1.44M = 1474560 bytes
-#consider boot.sect to be = 512bytes
-	dd if=/dev/zero bs=512 count=2879 | cat boot.sect - > boot.fd
-#dd if=/dev/zero bs=512 count=2814 | cat boot.sect - > boot.fd
-
+    # boot.sect is 2*512 byte.
+    # A correct concatention requires count to be 2880-2=2878.
+	dd if=/dev/zero bs=512 count=2878 | cat boot.sect - > boot.fd
 
 boot.sect: boot.o
 	ld -m elf_i386 --Ttext=0x7c00 -oformat=binary -o boot.out boot.o
