@@ -72,16 +72,16 @@ boot_start:
     call bios_strprint
 
     ## read 2nd sector (from hd0) and save @ $BUFFER
-    movb $0x01,     %al         # Want to read 1 sector only
-    movb $0x00,     %ch         # From cylinder 0
-    movb $0x02,     %cl         # Sectors start from 1 instead of 0
-    movb $0x00,     %dh         # Head is 0
-    movb $0x80,     %dl         # 0x80 is for Hard Drive 0
-    movw $BUFFER,   %bx         # Saving the sector @ $BUFFER
+    movb $0x01,      %al        # Want to read 1 sector only
+    movb $0x00,      %ch        # From cylinder 0
+    movb $0x02,      %cl        # Sectors start from 1 instead of 0
+    movb $0x00,      %dh        # Head is 0
+    movb $0x80,      %dl        # 0x80 is for Hard Drive 0
+    movw $BUFFER,    %bx        # Saving the sector @ $BUFFER
     call read_sector
 
     ## print the string containted in $BUFFER
-    movw $BUFFER,   %ax
+    movw $BUFFER,    %ax
     call bios_strprint
 
     ## enable A20 Gate
@@ -94,6 +94,7 @@ end:
     hlt                         # you should not be here!
 
 #bootloader private functions
+###################################################################
 bios_strprint:	                # void bios_strprint(char* AX)
     pushw            %ax
     pushw            %bx
@@ -114,37 +115,44 @@ bios_strprint_writeloop_end:
     popw  %bx
     popw  %ax
     ret
+##################################################################
 
+##################################################################
 read_sector:                    # int read_sector (void* buff)
     ##BIOS int INT 0x13 (AH=0x02 read_sector_from_drive, AL=no_sectors, CH=cylinder, CL=sector, DH=head, DL=drive, ES:BX buff_addr_ptr)
-    movb $0x02,     %ah
-    int $0x13
+    movb $0x02,      %ah
+    int  $0x13
     ##return not implemented
     ret
+##################################################################
 
+##################################################################
 check_A20:                      # void check_A20
-        pushw %ax
-        ##BIOS int INT 0x15 (AX=0x2402) (Check for A20 Gate status. If disabled %al == 0, %al == 1 otherwise).
-        movw $0x2402, %ax
-        int $0x15
-        cmpb $0x0, %al
-        jnz enabled
-        movw $A20_disabled, %ax
-        jmp print
+     pushw           %ax
+     ##BIOS int INT 0x15 (AX=0x2402) (Check for A20 Gate status. If disabled %al == 0, %al == 1 otherwise).
+     movw $0x2402,   %ax
+     int $0x15
+     cmpb $0x0,      %al
+     jnz enabled
+     movw $A20_disabled, %ax
+     jmp print
 enabled:
-        movw $A20_enabled, %ax
+     movw $A20_enabled,  %ax
 print:  
-        call bios_strprint
-        popw  %ax
-        ret
+     call bios_strprint
+     popw            %ax
+     ret
+#################################################################
 
+#################################################################
 enable_A20:                     #void enable_A20
-        pushw %ax
-        ##BIOS int INT 0x15 (AX=0x2401) (Enable A20 Gate).
-        movw $0x2401, %ax
-        int $0x15
-        popw  %ax
-        ret
+     pushw           %ax
+     ##BIOS int INT 0x15 (AX=0x2401) (Enable A20 Gate).
+     movw $0x2401,   %ax
+     int $0x15
+     popw            %ax
+     ret
+#################################################################
 	
 #data
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
