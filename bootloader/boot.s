@@ -1,8 +1,8 @@
 ##
 ## author: Alfredo Mazzinghi
 ##
-## Floppy disk boot sector
-## Fists stage
+## Hard disk MBR + sector 2
+## Stage 0 (Testing)
 
 ## real mode
 .code16
@@ -39,7 +39,13 @@
 ###              |     BIOS                     |
 ### 0xF000:FFFF  +------------------------------+
 
+### What follows (between boot_begin: and signature: ) is the Stage 0.
+### Any other code outside these first 512 bytes won't be copied onto the RAM by the BIOS.
+
 .text
+
+### MBR starts here
+
 boot_begin:
     ## disable interrupts, we are messing with segments now
     cli
@@ -100,3 +106,18 @@ signature:
     ## boot sector signature
     .byte   0x55
     .byte   0xaa
+
+### MBR ends here
+
+### Second Sector starts here
+### It contains an ASCII string
+second_sector_begin:
+
+#data
+.asciz "\b\bText string saved on Disk 0, Sector 2.\r\n"
+
+second_sector_end:
+        ##pad to 1024 bytes
+        .fill 512 - (second_sector_end - second_sector_begin)
+
+### Second Sector ends here
