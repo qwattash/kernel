@@ -11,6 +11,7 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
+.equ BUFFER,    0x0500
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -70,15 +71,28 @@ boot_start:
     movw $welcome,   %ax
     call bios_strprint
 
+    ## read 2nd sector (from hd0) and save @ $BUFFER
+    movb $0x01,     %al         # Want to read 1 sector only
+    movb $0x00,     %ch         # From cylinder 0
+    movb $0x02,     %cl         # Sectors start from 1 instead of 0
+    movb $0x00,     %dh         # Head is 0
+    movb $0x80,     %dl         # 0x80 is for Hard Drive 0
+    movw $BUFFER,   %bx         # Saving the sector @ $BUFFER
+    call read_sector
+
+    ## print the string containted in $BUFFER
+    movw $BUFFER,   %ax
+    call bios_strprint
+
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
 
 #bootloader private functions
 bios_strprint:	                # void bios_strprint(char* AX)
-    pushw %ax
-    pushw %bx
-    pushw %si
+    pushw            %ax
+    pushw            %bx
+    pushw            %si
     ## BIOS void INT 0x10(AH=0x0e display_char, AL=char_to_display, BH=page_number, BL=foreground_color graphic mode only)
     movw  %ax,       %si
     movb  $0x0e,     %ah
@@ -94,6 +108,13 @@ bios_strprint_writeloop_end:
     popw  %si
     popw  %bx
     popw  %ax
+    ret
+
+read_sector:                    # int read_sector (void* buff)
+    ##BIOS int INT 0x13 (AH=0x02 read_sector_from_drive, AL=no_sectors, CH=cylinder, CL=sector, DH=head, DL=drive, ES:BX buff_addr_ptr)
+    movb $0x02,     %ah
+    int $0x13
+    ##return not implemented
     ret
 	
 #data
