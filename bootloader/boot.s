@@ -84,6 +84,11 @@ boot_start:
     movw $BUFFER,   %ax
     call bios_strprint
 
+    ## enable A20 Gate
+    call enable_A20
+    ## print activation outcome
+    call check_A20
+
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
@@ -116,9 +121,35 @@ read_sector:                    # int read_sector (void* buff)
     int $0x13
     ##return not implemented
     ret
+
+check_A20:                      # void check_A20
+        pushw %ax
+        ##BIOS int INT 0x15 (AX=0x2402) (Check for A20 Gate status. If disabled %al == 0, %al == 1 otherwise).
+        movw $0x2402, %ax
+        int $0x15
+        cmpb $0x0, %al
+        jnz enabled
+        movw $A20_disabled, %ax
+        jmp print
+enabled:
+        movw $A20_enabled, %ax
+print:  
+        call bios_strprint
+        popw  %ax
+        ret
+
+enable_A20:                     #void enable_A20
+        pushw %ax
+        ##BIOS int INT 0x15 (AX=0x2401) (Enable A20 Gate).
+        movw $0x2401, %ax
+        int $0x15
+        popw  %ax
+        ret
 	
 #data
-welcome: .asciz "\b\bWelcome to Custom Boot v0\r\n"
+welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
+A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
+A20_disabled:   .asciz "\b\bA20 Disabled.\r\n"
 
 boot_end:
     ##pad to 512 bytes
