@@ -1,1 +1,63 @@
 #gdt documentation
+
+    1.
+    Protected mode execution requires the segment registers
+    to refer a segment descriptors in the GDT.
+    For this reason we are going to create a temporary GDT.
+    Standard GDT entries for our purposes consist of:
+        
+        - A null segment descriptor (required)
+    
+        - A 4GB, 32-bit, DPL 0, "non-conforming" type, code segment
+                                                       ^^^^
+          descriptor
+        
+        - A 4GB, 32-bit, DPL 0, "expand-up" type, data segment
+                                                  ^^^^ 
+          descriptor
+
+    Warning: remember that the GDT must be eight-byte aligned (i.e. its address
+    should look like 0x[...]000)
+
+    2.
+    Segments Descriptors:
+
+    No.1 4GB, 32-bit, DPL 0, "non-conforming" type, code
+
+    |   BASE 31:24                  | G |D/B| 0 |AVL| SEG LIM 19:16 | P |  DPL  | S |   TYPE        |   BASE 23:16                  |
+      _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _     
+    |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+    | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 1 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+    | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ |
+     31  30  29  28  27  26  25  24  23  22  21  20  19  18  17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+    
+    |   BASE 15:0                                                   |   SEGMENT LIMIT 15:0                                          |
+      _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _     
+    |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+    | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+    | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ | _ |
+     31  30  29  28  27  26  25  24  23  22  21  20  19  18  17  16  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0  
+
+    Explanation:
+    - AVL:           available for use by sys software (0 or 1 makes no difference)
+    - S:             descriptor type (1 for code and data)
+    - G:             when flag is set, the segment limit is interpreted in 4-KByte units
+    - SEGMENT LIMIT: 4GiB / 4KiB = 1 Mib (All ones should be ok)
+    - DPL:           00, the most privileged level
+    - BASE:          0x0 for our purposes
+    - P:             1 of course
+    - D/B:           this flag should always be set to 1 for 32-bit code and data segments and to 0 for 16-bit code and data segments; think we need 1
+    - TYPE:          Code - Non-conforming - Execute/Read <==> 1010
+
+    No.2 4GB, 32-bit, DPL 0, "expand-up" type, data
+    
+    The only difference is in bits 11 10 9 and 8 (TYPE field).
+    - TYPE:          Data - Expand-up - Read/Write <==> 0010
+
+        |   TYPE        |
+      _   _   _   _   _   _     
+        |   |   |   |   |   
+        | 0 | 0 | 1 | 0 |  
+      _ | _ | _ | _ | _ | _ 
+         11  10   9   8   
+
