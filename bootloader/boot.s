@@ -103,11 +103,11 @@ boot_start:
     mov  %cr0,       %eax
     or   $0x1,       %al
     mov  %eax,       %cr0
-    ljmp $SEG_BOOT,  $next
+    ljmp $0x08,      $next
         
 next:
-    #.code32
-    movw $SEG_BOOT,  %ax
+    .code32
+    movw $0x10,      %ax
     movw %ax,        %ds
     movw %ax,        %es
     movw %ax,        %fs
@@ -119,6 +119,7 @@ end:
     jmp  end                    # loop forever
     hlt                         # you should not be here!
 
+    .code16
 #bootloader private functions
 ###################################################################
 bios_strprint:	                # void bios_strprint(char* AX)
