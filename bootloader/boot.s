@@ -20,6 +20,10 @@
 ###              |     BIOS                     |
 ### 0x0000:04FF	 +------------------------------+
 ###              |     BootLoader free Mem      |
+### 0x0000:1000  +------------------------------+
+###              |     GDT                      |
+### 0x0000:1018  +------------------------------+
+###              |     BootLoader free Mem      |
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
@@ -89,6 +93,28 @@ boot_start:
     ## print activation outcome
     call check_A20
 
+    ## setup the gdt
+    call write_temp_gdt
+    ## load new gdt
+    cli
+    lgdt gdt_pointer
+    
+    ## ==> protected mode
+    mov  %cr0,       %eax
+    or   $0x1,       %al
+    mov  %eax,       %cr0
+    ljmp $SEG_BOOT,  $next
+        
+next:
+    #.code32
+    movw $SEG_BOOT,  %ax
+    movw %ax,        %ds
+    movw %ax,        %es
+    movw %ax,        %fs
+    movw %ax,        %gs
+    movw %ax,        %ss
+    movl $0x90000,   %esp
+ 
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
@@ -153,12 +179,46 @@ enable_A20:                     #void enable_A20
      popw            %ax
      ret
 #################################################################
+
+#################################################################
+write_temp_gdt:                 #setup a temporary gdt
+                                #starting from 0x01000
+     pushw  %di
+	 movw   $0x1000, %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0xFFFF, (%di)
+     add    $2,      %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0x9A00, (%di)
+     add    $2,      %di
+     movw   $0x00CF, (%di)
+     add    $2,      %di
+     movw   $0xFFFF, (%di)
+     add    $2,      %di
+     movw   $0x0,    (%di)
+     add    $2,      %di
+     movw   $0x9200, (%di)
+     add    $2,      %di
+     movw   $0x00CF, (%di)        
+     popw   %di
+     ret
+#################################################################
 	
 #data
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
 A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
 A20_disabled:   .asciz "\b\bA20 Disabled.\r\n"
-
+gdt_pointer:
+	.word 0x17                  #gdt limit
+	.long 0x1000		        #gdt base
 boot_end:
     ##pad to 512 bytes
     .fill   510 - (boot_end - boot_begin)
