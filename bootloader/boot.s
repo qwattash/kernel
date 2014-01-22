@@ -104,6 +104,7 @@ boot_start:
     mov  %cr0,       %eax
     or   $0x1,       %al
     mov  %eax,       %cr0
+
     ljmp $0x08,  $next
 
 next:
@@ -120,6 +121,7 @@ end:
     hlt                         # you should not be here!
 
 .code16
+
 #bootloader private functions
 ###################################################################
 bios_strprint:	                # void bios_strprint(char* AX)
