@@ -22,4 +22,3 @@ boot.o: boot.s
 
 clean:
 	rm -rf boot.fd boot.sect boot.o boot boot.iso boot.out
-	
