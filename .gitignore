@@ -1,5 +1,7 @@
 #emacs or vim temp files
 *~
+\#*
+.\#*
 #object files and compilation stuff
 bootloader/*.o
 bootloader/*.vdi
