@@ -30,7 +30,7 @@
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
 ###              |     2nd Stage bootloader     |
-### 0x0000:7F00  +------------------------------+
+### 0x0000:8000  +------------------------------+
 ###              |     BootLoader free Mem      |
 ### 0x9000:0000	 +------------------------------+
 ###              |     Available Stack space    |
@@ -129,7 +129,8 @@ next:
     movw %ax,        %ss
     movl $0x90000,   %esp
     #jump to second stage
-    jmp *0x7E00 #absolute near jump
+    movl $STAGE_2, %eax
+    jmp *%eax #absolute near jump
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
