@@ -13,6 +13,7 @@
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
 .equ BUFFER,    0x0500
+.equ STAGE_2,   0x7E00 
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -28,6 +29,8 @@
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
+###              |     2nd Stage bootloader     |
+### 0x0000:7F00  +------------------------------+
 ###              |     BootLoader free Mem      |
 ### 0x9000:0000	 +------------------------------+
 ###              |     Available Stack space    |
@@ -71,7 +74,7 @@ boot_start:
     movw %ax,        %sp        # init stack pointer
 
     sti                         # enable interrupts again
-	
+        
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
@@ -88,6 +91,15 @@ boot_start:
     ## print the string containted in $BUFFER
     movw $BUFFER,    %ax
     call bios_strprint
+
+    ## take third sector from hdd containing the C second stage
+    movb $0x01,      %al        # Want to read 1 sector only
+    movb $0x00,      %ch        # From cylinder 0
+    movb $0x03,      %cl        # Sectors start from 1 instead of 0
+    movb $0x00,      %dh        # Head is 0
+    movb $0x80,      %dl        # 0x80 is for Hard Drive 0
+    movw $STAGE_2,    %bx       # Load second stage just below the first stage
+    call read_sector
 
     ## enable A20 Gate
     call enable_A20
@@ -116,6 +128,8 @@ next:
     movw %ax,        %gs
     movw %ax,        %ss
     movl $0x90000,   %esp
+    #jump to second stage
+    jmp *0x7E00 #absolute near jump
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
@@ -147,11 +161,34 @@ bios_strprint_writeloop_end:
 ##################################################################
 
 ##################################################################
-read_sector:                    # int read_sector (void* buff)
+# int read_sector (void* buff)
+#@todo make it callable using the stack?
+#(byte num_sect, byte head, byte cylinder, byte sector, byte drive)
+read_sector:
     ##BIOS int INT 0x13 (AH=0x02 read_sector_from_drive, AL=no_sectors, CH=cylinder, CL=sector, DH=head, DL=drive, ES:BX buff_addr_ptr)
+    /*
+    #prepare stack frame
+    pushw %bp
+    movw %sp, %bp
+    #save regs
+    pushw %ax
+    pushw %bx
+    pushw %cx
+    pushw %dx
+
+    #prepare for bios call
+    */
     movb $0x02,      %ah
     int  $0x13
     ##return not implemented
+    /*
+    #restore regs
+    popw %dx
+    popw %cx
+    popw %bx
+    popw %ax
+    leave
+    */
     ret
 ##################################################################
 
@@ -186,6 +223,7 @@ enable_A20:                     #void enable_A20
 #################################################################
 write_temp_gdt:                 #setup a temporary gdt
                                 #starting from 0x01000
+	
      pushw  %di
      movw   $0x1000, %di
      movw   $0x0,    (%di)
@@ -233,7 +271,10 @@ signature:
 ### MBR ends here
 
 ### Second Sector starts here
-### It contains an ASCII string
+# the sectors following the first one will contain the second stage image
+# the image will be loaded into memory and run in protected mode
+# routines for switching mode are included in the image
+### 
 second_sector_begin:
 
 #data

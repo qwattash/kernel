@@ -8,10 +8,10 @@ boot.vdi: boot.hd
     # Fixed uuid allows easy testing with VirtualBox
 	VBoxManage convertfromraw  --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI boot/boot.hd boot/boot.vdi
 
-boot.hd: boot.sect
-    # boot.sect is 2*512 byte.
-    # A correct concatention requires count to be 2880-2=2878.
-	dd if=/dev/zero bs=512 count=2878 | cat boot.sect - > boot.hd
+boot.hd: boot.sect stage2.raw
+        # boot.sect is 2*512 byte.
+        # A correct concatention requires count to be 2880-2=2878.
+	dd if=/dev/zero bs=512 count=2878 | cat boot.sect stage2.out - > boot.hd
 
 boot.sect: boot.o
 	ld -m elf_i386 --Ttext=0x7c00 -oformat=binary -o boot.out boot.o
@@ -20,5 +20,12 @@ boot.sect: boot.o
 boot.o: boot.s
 	as --32  boot.s -o boot.o
 
+stage2.o: stage2.c
+#gcc -m32 -nostdlib -nodefaultlibs -nostartfiles -c -o stage2.o stage2.c
+	as --32 stage2.s -o stage2.o
+
+stage2.out: stage2.o
+	ld -m elf_i386 -Ttext=0x7e00 -oformat=binary -o stage2.out stage2.o
+
 clean:
-	rm -rf boot.fd boot.sect boot.o boot boot.iso boot.out
+	rm -rf boot.fd boot.sect boot.o boot boot.iso boot.out stage2.out
