@@ -2,22 +2,27 @@
 
 #define module params
 STAGE2_CSOURCES := $(wildcard stage2/*.c)
-STAGE2_ASOURCES := $(wildcard stage2/*.s)
 STAGE2_COBJS := $(patsubst %.c, %.o, $(STAGE2_CSOURCES))
-STAGE2_AOBJS := $(patsubst %.s, %_a.o, $(STAGE2_ASOURCES))
 STAGE2_TARGET := stage2/stage2.out
+
+#the stub is placed by the linker script at the top of the image
+STAGE2_STUB := stage2/stage2_stub.s
+STAGE2_STUB_OBJ := $(patsubst %.s, %.o, $(STAGE2_STUB))
 
 #define target for the stage2 image
 
-CLEAN += $(STAGE2_COBJS) $(STAGE2_AOBJS) $(STAGE2_TARGET)
+CLEAN += $(STAGE2_COBJS) $(STAGE2_TARGET) $(STAGE2_STUB_OBJ)
+
+#linker script
+LD_SCRIPT := stage2/flat_mmap.ld
 
 $(STAGE2_COBJS): $(STAGE2_CSOURCES)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(STAGE2_AOBJS): $(STAGE2_ASOURCES)
-	$(CC) $(CFLAGS) -c -o $@ $<
+$(STAGE2_STUB_OBJ): $(STAGE2_STUB)
+	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(STAGE2_TARGET): $(STAGE2_COBJS) $(STAGE2_AOBJS)
-	$(LD) $(LDFLAGS) -Ttext=0x7e00 -oformat=binary -o stage2/stage2.tmp $^
+$(STAGE2_TARGET): $(STAGE2_STUB_OBJ) $(STAGE2_COBJS)
+	$(LD) $(LDFLAGS) -oformat=binary -T $(LD_SCRIPT) -o stage2/stage2.tmp $^
 	objcopy -O binary stage2/stage2.tmp $@
 	rm stage2/stage2.tmp

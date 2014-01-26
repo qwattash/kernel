@@ -26,7 +26,9 @@ void protected_print(char* buffer)
  * @see http://wiki.osdev.org/Printing_To_Screen
  *
  */
+/*
 void printf(char* format, ...) 
 {
 
 }
+*/

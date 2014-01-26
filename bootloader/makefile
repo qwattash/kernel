@@ -5,7 +5,7 @@ VBOX := VBoxManage
 
 #toolchain options
 VBOXFLAGS := convertfromraw  --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI
-CFLAGS := -Wall -g -m32 -nostdlib -nodefaultlibs -nostartfiles
+CFLAGS := -Wall -Wno-implicit-function-declaration -g -m32 -nostdlib -nodefaultlibs -nostartfiles -fno-builtin
 ASMFLAGS := 
 LDFLAGS := -m elf_i386
 LDASMFLAGS := 
@@ -37,7 +37,7 @@ boot.vdi: boot.hd
     # Create a vdi from raw boot.sect.
 	rm -f boot/boot.vdi
 	mkdir boot
-	cp boot.hd boot/
+	mv boot.hd boot/
     # Fixed uuid allows easy testing with VirtualBox
 	$(VBOX) $(VBOXFLAGS) boot/boot.hd boot/boot.vdi
 
