@@ -1,8 +1,7 @@
 ##
 ## Authors: Alfredo Mazzinghi, Nicola Piga
 ##
-## Hard disk MBR + sector 2
-## Stage 0 (Testing)
+## Stage 1
 
 ## real mode
 .code16
