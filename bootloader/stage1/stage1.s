@@ -12,7 +12,6 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ BUFFER,    0x0500
 .equ STAGE_2,   0x7E00 
 
 ### memory map documentation
@@ -79,23 +78,10 @@ boot_start:
     movw $welcome,   %ax
     call bios_strprint
 
-    ## read 2nd sector (from hd0) and save @ $BUFFER
+    ## take second sector from hdd containing the C second stage
     movb $0x01,      %al        # Want to read 1 sector only
     movb $0x00,      %ch        # From cylinder 0
     movb $0x02,      %cl        # Sectors start from 1 instead of 0
-    movb $0x00,      %dh        # Head is 0
-    movb $0x80,      %dl        # 0x80 is for Hard Drive 0
-    movw $BUFFER,    %bx        # Saving the sector @ $BUFFER
-    call read_sector
-
-    ## print the string containted in $BUFFER
-    movw $BUFFER,    %ax
-    call bios_strprint
-
-    ## take third sector from hdd containing the C second stage
-    movb $0x01,      %al        # Want to read 1 sector only
-    movb $0x00,      %ch        # From cylinder 0
-    movb $0x03,      %cl        # Sectors start from 1 instead of 0
     movb $0x00,      %dh        # Head is 0
     movb $0x80,      %dl        # 0x80 is for Hard Drive 0
     movw $STAGE_2,    %bx       # Load second stage just below the first stage
@@ -270,19 +256,3 @@ signature:
     .byte   0xaa
 
 ### MBR ends here
-
-### Second Sector starts here
-# the sectors following the first one will contain the second stage image
-# the image will be loaded into memory and run in protected mode
-# routines for switching mode are included in the image
-### 
-second_sector_begin:
-
-#data
-.asciz "\b\bText string saved on Disk 0, Sector 2.\r\n"
-
-second_sector_end:
-        ##pad to 1024 bytes
-        .fill 512 - (second_sector_end - second_sector_begin)
-
-### Second Sector ends here
