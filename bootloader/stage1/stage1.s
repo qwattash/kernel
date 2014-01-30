@@ -116,9 +116,7 @@ next:
     movl $0x90000,   %esp
     #jump to second stage
     movl $STAGE_2, %eax
-    pushl          %eax
-    ret
-    #jmp *%eax #absolute near jump
+    jmp *%eax #absolute near jump
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
