@@ -1,8 +1,7 @@
 ##
 ## Authors: Alfredo Mazzinghi, Nicola Piga
 ##
-## Hard disk MBR + sector 2
-## Stage 0 (Testing)
+## Stage 1
 
 ## real mode
 .code16
@@ -12,7 +11,6 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ BUFFER,    0x0500
 .equ STAGE_2,   0x7E00 
 
 ### memory map documentation
@@ -79,27 +77,15 @@ boot_start:
     movw $welcome,   %ax
     call bios_strprint
 
-    ## read 2nd sector (from hd0) and save @ $BUFFER
-    movb $0x01,      %al        # Want to read 1 sector only
-    movb $0x00,      %ch        # From cylinder 0
-    movb $0x02,      %cl        # Sectors start from 1 instead of 0
-    movb $0x00,      %dh        # Head is 0
-    movb $0x80,      %dl        # 0x80 is for Hard Drive 0
-    movw $BUFFER,    %bx        # Saving the sector @ $BUFFER
-    call read_sector
-
-    ## print the string containted in $BUFFER
-    movw $BUFFER,    %ax
-    call bios_strprint
-
-    ## take third sector from hdd containing the C second stage
-    movb $0x01,      %al        # Want to read 1 sector only
-    movb $0x00,      %ch        # From cylinder 0
-    movb $0x03,      %cl        # Sectors start from 1 instead of 0
-    movb $0x00,      %dh        # Head is 0
-    movb $0x80,      %dl        # 0x80 is for Hard Drive 0
-    movw $STAGE_2,    %bx       # Load second stage just below the first stage
-    call read_sector
+    ## take second sector from hdd containing the C second stage
+    pushw $STAGE_2              # Load second stage just below the first stage
+    pushw $0x0001               # Want to read 1 sector only
+    pushw $0x0002               # Selector number (rem: sectors start from 1)
+    pushw $0x0000               # Head: 0
+    pushw $0x0000               # Cylinder: 0
+    pushw $0x0080               # Drive: Hard Drive 0    
+    call  read_sector
+    add   $0x0C,      %sp
 
     ## enable A20 Gate
     call enable_A20
@@ -162,12 +148,10 @@ bios_strprint_writeloop_end:
 ##################################################################
 
 ##################################################################
-# int read_sector (void* buff)
-#@todo make it callable using the stack?
-#(byte num_sect, byte head, byte cylinder, byte sector, byte drive)
+# void read_sector (byte drive, byte cylinder, byte head, byte sector, byte num_sect, void * buff)
 read_sector:
     ##BIOS int INT 0x13 (AH=0x02 read_sector_from_drive, AL=no_sectors, CH=cylinder, CL=sector, DH=head, DL=drive, ES:BX buff_addr_ptr)
-    /*
+    	
     #prepare stack frame
     pushw %bp
     movw %sp, %bp
@@ -177,19 +161,24 @@ read_sector:
     pushw %cx
     pushw %dx
 
-    #prepare for bios call
-    */
+    #prepare for bios call  
+    movb 4(%bp),     %dl
+    movb 6(%bp),     %ch
+    movb 8(%bp),     %dh
+    movb 10(%bp),    %cl
+    movb 12(%bp),    %al
+    movw 14(%bp),    %bx
     movb $0x02,      %ah
     int  $0x13
     ##return not implemented
-    /*
+    
     #restore regs
     popw %dx
     popw %cx
     popw %bx
     popw %ax
     leave
-    */
+    
     ret
 ##################################################################
 
@@ -270,19 +259,3 @@ signature:
     .byte   0xaa
 
 ### MBR ends here
-
-### Second Sector starts here
-# the sectors following the first one will contain the second stage image
-# the image will be loaded into memory and run in protected mode
-# routines for switching mode are included in the image
-### 
-second_sector_begin:
-
-#data
-.asciz "\b\bText string saved on Disk 0, Sector 2.\r\n"
-
-second_sector_end:
-        ##pad to 1024 bytes
-        .fill 512 - (second_sector_end - second_sector_begin)
-
-### Second Sector ends here

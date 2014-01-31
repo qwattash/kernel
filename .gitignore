@@ -3,10 +3,9 @@
 \#*
 .\#*
 #object files and compilation stuff
-bootloader/*.o
-bootloader/*.vdi
-bootloader/*.out
-bootloader/*.sect
-bootloader/*.hd
 bootloader/boot/*.hd
 bootloader/boot/*.vdi
+bootloader/stage1/*.o
+bootloader/stage1/*sect
+bootloader/stage2/*.o
+bootloader/stage2/*.out
