@@ -1,10 +1,49 @@
 #
-# Main makefile
-# the makefile architecture for this project has been built to
-# avoid recursive makefiles which are bad.
-# In order to achieve this, the make process has been split
-# into modules, each module represent a logical entity
-# in the kernel architecture and each module can have a number of
-# submodules.
-# The main makefile defines the building environmentand then
-# delegates the specific handling
+# Automated Non REcursive Make
+# Author: qwattash (Alfredo Mazzinghi) <mzz.lrd@gmail.com>
+#
+# Main makefile for the project
+# The ANREM system is aimed to provide an easy and extensible
+# make environment for projects of any dimension with small deal
+# of configuration.
+# Non recursive make provides a way to avoid all the problems
+# that recursion causes in make.
+#
+
+#global constants
+ANREM_COMPONENTS := mk
+
+#default target is all, needed because all has to be defined
+#after all inclusions and otherwise the first included target
+#would be run on a param-less make call
+predefined: all
+
+#
+# include configuration
+#
+include $(ANREM_COMPONENTS)/config.mk
+
+#
+# include environment
+#
+include $(ANREM_COMPONENTS)/env.mk
+
+#
+# ANREM functions
+#
+include $(ANREM_COMPONENTS)/functions.mk
+
+#
+# include top level project definition
+#
+include $(ANREM_TOP)/project.mk
+
+#
+# include project modules
+#
+$(call anrem-include-modules, $(ANREM_MODULES))
+
+#
+# include ANREM specific targets
+#
+include $(ANREM_COMPONENTS)/targets.mk
