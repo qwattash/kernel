@@ -24,6 +24,7 @@ $(call anrem-target, $(BOOT_HDD)): $(BOOT_MERGED)
 	$(VBOX) $(VBOXFLAGS) $^ $@
 
 $(call anrem-target, $(BOOT_MERGED)): $(STAGE1_IN) $(STAGE2_IN)
+# Create a raw disk containing the MBR (stage1) and stage2
 	$(DD) if=/dev/zero bs=$(DDBLOCKSIZE) count=$(call dd-count, $^) | cat $^ - > $@
 
 $(call anrem-target, boot_clean):
