@@ -17,3 +17,5 @@ CFLAGS := -Wall -Wno-implicit-function-declaration -g -m32 -nostdlib -nodefaultl
 ASMFLAGS := 
 LDFLAGS := -m elf_i386
 LDASMFLAGS := 
+DDBLOCKSIZE := 512
+VBOXMINSIZE := 1048576

@@ -26,7 +26,7 @@ $(call anrem-target, $(BOOT_HDD)): $(BOOT_MERGED)
 $(call anrem-target, $(BOOT_MERGED)): $(STAGE1_IN) $(STAGE2_IN)
 # need to add enouth data to cross the 1MB boundary, otherwise the VBoxManage tool
 # @todo automatic count generation for $(DD)
-	$(DD) if=/dev/zero bs=512 count=2878 | cat $^ - > $@
+	$(DD) if=/dev/zero bs=$(DDBLOCKSIZE) count=$(call generate-dd-counter, $^) | cat $^ - > $@
 
 $(call anrem-target, boot_clean):
 	rm -rf $(BOOT_HDD) $(BOOT_MERGED)
