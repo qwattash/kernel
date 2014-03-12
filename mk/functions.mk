@@ -41,10 +41,16 @@ anrem-join = $(addprefix $(ANREM_CURRENT_MODULE)/,$(strip $(1)))
 
 #
 # Utilities (not strictly related to inclusion stuff)
-#  
+#
 
 #
-# return file size in bytes given its absolute name
+# return the sum of the values in the list
+# @param $1 values list
+#
+sum = $(shell for ADDI in $(1); do SUM=$$(($$SUM + $$ADDI)); done; echo $$SUM;)  
+
+#
+# return file size in bytes
 # @param $1 file absolute name
 #
 file-size = $(shell stat -c%s $(1))
@@ -56,15 +62,21 @@ file-size = $(shell stat -c%s $(1))
 file-sizes-list = $(foreach FILE_ABS_NAME, $(1), $(call file-size, $(FILE_ABS_NAME)))
 
 #
-# return the sum of one or more file sizes given a list of file sizes
-# @param $1 file sizes list
+# return the sum of file sizes
+# @param $1 file absolute names list
 #
-sum-file-sizes = $(shell for SIZEI in $(call file-sizes-list, $(1)); do TOT=$$(($$TOT + $$SIZEI)); done; echo $$TOT;)
+file-sizes-sum = $(call sum, $(call file-sizes-list, $(1)))
 
 #
-# return the counter value needed for $(DD) execution given the list of sector file absolute names
-# @param $1 file sizes list
-# leading +1 in calculation mimics the ceiling [] function behavior 
+# return the number of $DDBLOCKSIZE blocks of padding needed to reach $VBOXMINSIZE 
+# @param $1 sum of sector files sizes
 #
-generate-dd-counter = $(strip $(shell echo $$(( ($(VBOXMINSIZE) - $(call sum-file-sizes, $(1)))/$(DDBLOCKSIZE) +1 )) ))
+padding-counter = $(shell if [ $(1) -lt $(VBOXMINSIZE) ]; then echo $$(( ($(VBOXMINSIZE) - $(1))/$(DDBLOCKSIZE) +1 )); else echo 0; fi;)
+
+#
+# return the count value needed for $(DD) execution
+# @param $1 sector files absolute names list
+#
+dd-count = $(call padding-counter, $(call file-sizes-sum, $(1)))
+
 
