@@ -1,28 +1,33 @@
-#makefile import for the stage1 boot loader
+#makefile rules for the stage 2
+
+CURRENT := $(call anrem-current-path)
 
 #define module params
-STAGE2_CSOURCES := $(wildcard stage2/*.c)
+STAGE2_CSOURCES := $(wildcard $(CURRENT)/*.c)
 STAGE2_COBJS := $(patsubst %.c, %.o, $(STAGE2_CSOURCES))
-STAGE2_TARGET := stage2/stage2.out
+STAGE2_TARGET := $(CURRENT)/stage2.out
 
 #the stub is placed by the linker script at the top of the image
-STAGE2_STUB := stage2/stage2_stub.s
+STAGE2_STUB := $(CURRENT)/stage2_stub.s
 STAGE2_STUB_OBJ := $(patsubst %.s, %.o, $(STAGE2_STUB))
 
-#define target for the stage2 image
-
-CLEAN += $(STAGE2_COBJS) $(STAGE2_TARGET) $(STAGE2_STUB_OBJ)
-
 #linker script
-LD_SCRIPT := stage2/flat_mmap.ld
+LD_SCRIPT := $(CURRENT)/flat_mmap.ld
 
-$(STAGE2_COBJS): $(STAGE2_CSOURCES)
+$(call anrem-target, $(STAGE2_COBJS)): $(STAGE2_CSOURCES)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(STAGE2_STUB_OBJ): $(STAGE2_STUB)
+$(call anrem-target, $(STAGE2_STUB_OBJ)): $(STAGE2_STUB)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(STAGE2_TARGET): $(STAGE2_STUB_OBJ) $(STAGE2_COBJS)
-	$(LD) $(LDFLAGS) -oformat=binary -T $(LD_SCRIPT) -o stage2/stage2.tmp $^
-	objcopy -O binary stage2/stage2.tmp $@
-	rm stage2/stage2.tmp
+$(call anrem-target, $(STAGE2_TARGET)): $(STAGE2_STUB_OBJ) $(STAGE2_COBJS)
+	$(LD) $(LDFLAGS) -oformat=binary -T $(LD_SCRIPT) -o $(path)/stage2.tmp $^
+	objcopy -O binary $(path)/stage2.tmp $@
+	rm $(path)/stage2.tmp
+
+$(call anrem-target, stage2_clean):
+	rm -rf $(STAGE2_COBJS) $(STAGE2_TARGET) $(STAGE2_STUB_OBJ)
+
+$(call anrem-build, $(STAGE2_TARGET))
+$(call anrem-clean, stage2_clean)
+

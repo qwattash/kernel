@@ -4,13 +4,12 @@
  @see http://wiki.osdev.org/Linker_Scripts
  @see https://sourceware.org/binutils/docs-2.21/ld/Scripts.html#Scripts
 */
-SECTIONS 
-{
+SECTIONS {
 	/* 0x7e00; change this with _KERNEL_BASE_ var 
 	   put the text section of stage2_stub.o and put it at the beginning
 	*/
 	.text.start (0x7e00) : {
-		    stage2/stage2_stub.o( .text )
+		    bootloader/stage2/stage2_stub.o(.text)
 	}
 	
 	/*
@@ -24,7 +23,7 @@ SECTIONS
 	      *(.text)
 	      _TEXT_END_ = .;
 	}
-
+        
 	.data : {
 	      _DATA_START_ = .;
 	      *(.data)
@@ -40,6 +39,6 @@ SECTIONS
 	.bss  : {
 	      _BSS_START_ = .;
 	      *(.bss)
-	      _BSS_END_ = .;     
+	      _BSS_END_ = .;
 	}
 }

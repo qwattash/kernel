@@ -15,13 +15,13 @@ anrem-current-path = $(ANREM_CURRENT_MODULE)
 # add given target to the global targets list
 # that is executed when make all is run
 #
-anrem-build = $(eval ANREM_BUILD_TARGETS += $(call anrem-join, $(1)))
+anrem-build = $(eval ANREM_BUILD_TARGETS += $(strip $(1)))
 
 #
 # add given target to the clean list
 # that is executed whenever make clean is issued
 #
-anrem-build-clean = $(eval ANREM_BUILD_CLEAN += $(call anrem-join, $(1)))
+anrem-clean = $(eval ANREM_BUILD_CLEAN += $(strip $(1)))
 
 #
 # define the local path for a given target
