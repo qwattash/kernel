@@ -13,6 +13,7 @@
 .equ INIT_SP,   0xFBFF
 .equ STAGE_2,   0x7E00
 .equ BOOT_RELOC, 0x0500
+.equ BOOT_BEGIN, 0x7C00
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -48,6 +49,15 @@
 ### see BIOS Boot Specification in docs
 ### see BIOS Plug n Play Specification in docs
 
+## macros
+
+# reloc_addr relocated base address
+# base_addr base address
+# addr address to be moved relative to base_addr to reloc_addr
+#define RELOC_LABEL(reloc_addr, base_addr, addr) reloc_addr - addr_base + addr
+    
+## end macros
+    
 .text
 start:
 _start:
@@ -83,32 +93,38 @@ boot_start:
     xorw %bx, %bx
     movb stage2_partition_index, %bl
     shlw $4, %bx
-    # get partion start LBA
+    # get partion start LBA, little endian
     movw 0x1C8(%bx), %ax
     shll $0x10, %eax
     movw 0x1C6(%bx), %ax
     
     # relocate current boot code
-    movw $BOOT_RELOC, %di
-    movw $0x7C00, %si
-    movw $0x100, %cx
+    movw $BOOT_RELOC, %di       # get relocation base address
+    movw $BOOT_BEGIN, %si           # source
+    movw $0x100, %cx            # destination
     cld
-    rep movsb
+    rep movsb                   # copy
 
-    #calculate jump address
+    # calculate jump address
     # @TODO make this a macro
     movw $vbr_load, %bp
-    subw $0x7C00, %bp
+    subw $BOOT_BEGIN, %bp
     addw $BOOT_RELOC, %bp
+    #jump to relocated code, abs jump to (vbr_load - 0x7C00 + BOOT_RELOC)
     jmp *%bp
     
     # load VBR
 vbr_load:
-    movw $welcome,   %ax
-    call bios_strprint
-    jmp stop
-    # jump to VBR
+    popw %dx                    # get saved drive number
+    pushw %dx                   # push once to put it again in the stack
+    pushw $BOOT_BEGIN           # destination buffer
+    pushw $0x01                 # number of sectors to read
+    pushl %eax                  # push LBA
+    pushw %dx                   # push second time for the drive parameter
+    call read_sector
     
+    # jump to VBR
+    jmp *$BOOT_BEGIN
     /*
     ## take second sector from hdd containing the C second stage
     pushw $STAGE_2              # Load second stage just below the first stage
@@ -160,13 +176,15 @@ end:
 #bootloader private functions
 ###################################################################
 bios_strprint:	                # void bios_strprint(char* AX)
+    ## BIOS void INT 0x10(AH=0x0e display_char, AL=char_to_display, BH=page_number, BL=foreground_color graphic mode only)
     pushw            %ax
     pushw            %bx
     pushw            %si
-    ## BIOS void INT 0x10(AH=0x0e display_char, AL=char_to_display, BH=page_number, BL=foreground_color graphic mode only)
+    
     movw  %ax,       %si
     movb  $0x0e,     %ah
     movb  $0,        %bh
+    
     ## prepare to loop
 bios_strprint_writeloop:
     lodsb                       # load char in %al
@@ -174,48 +192,54 @@ bios_strprint_writeloop:
     jz    bios_strprint_writeloop_end
     int   $0x10                 # if char is ok, display it
     jmp   bios_strprint_writeloop
+    
 bios_strprint_writeloop_end:
     popw  %si
     popw  %bx
     popw  %ax
+
     ret
 ##################################################################
     
 ##################################################################
-# void read_sector (byte drive, byte cylinder, byte head, byte sector, byte num_sect, void * buff)
+# WARNING - the function shall not be called before the relocation of the boot code
+# void read_sector (byte drive, dword lba, byte num_sect, void * buff)
 read_sector:
-    ##BIOS int INT 0x13 (AH=0x02 read_sector_from_drive, AL=no_sectors, CH=cylinder, CL=sector, DH=head, DL=drive, ES:BX buff_addr_ptr)
-    	
+    ## BIOS int INT 0x13 (AH=0x42 extended_read_sector, DL=drive number, DS:SI seg:offset of Disk Address Packet)
     #prepare stack frame
     pushw %bp
     movw %sp, %bp
     #save regs
-    pushw %ax
-    pushw %bx
-    pushw %cx
+    pushl %eax
     pushw %dx
-
-    #prepare for bios call  
-    movb 4(%bp),     %dl
-    movb 6(%bp),     %ch
-    movb 8(%bp),     %dh
-    movb 10(%bp),    %cl
-    movb 12(%bp),    %al
-    movw 14(%bp),    %bx
-    movb $0x02,      %ah
+    
+    #prepare for bios call
+    # drive number in DL
+    movw 4(%bp), %dl
+    # load LBA
+    movl 6(%bp), %eax
+    movl %eax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_start_low)
+    # load number of sectors
+    movw 10(%bp), %ax
+    movw %ax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_num_sectors)
+    # load dap destination buffer
+    movl 12(%bp), %eax
+    movl %eax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_buffer)
+    movb $0x42,      %ah
     int  $0x13
-    ##return not implemented
+    # carry flag on error
+    # AH return code
+    # jc error
     
     #restore regs
     popw %dx
-    popw %cx
-    popw %bx
-    popw %ax
+    popl %eax
     leave
     
     ret
 ##################################################################
 
+/*
 ##################################################################
 check_A20:                      # void check_A20
      pushw           %ax
@@ -275,7 +299,8 @@ write_temp_gdt:                 #setup a temporary gdt
      popw   %di
      ret
 #################################################################
-	
+*/
+    
 #data
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
 A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
@@ -290,11 +315,26 @@ This field will be modified by the installer
 */
 stage2_partition_index:
     .byte 0
+## Disk Address Packet
+dap:
+dap_size:
+    .byte 0x10                  # size of DAP
+dap_unused:
+    .byte 0x00
+dap_num_sectors:                # some Phoenix BIOSes limit this to 127
+    .word 0x00
+dap_buffer:
+    .dword 0x00                 # seg:offset of destination buffer - take care of little endian
+dap_start_low:
+    .dword 0x00                 # LBA of first sector, low 32-bit
+dap_start_high:
+    .dword 0x00                 # LBA of first sector, high 32-bit
+    
 gdt_pointer:
-	.word 0x17                  #gdt limit
-	.long 0x1000		        #gdt base
+	.word 0x17              #gdt limit
+	.long 0x1000            #gdt base
 boot_end:
-    ##pad to 512 bytes
+    ##pad until signature
     .fill   510 - (boot_end - boot_begin)
 signature:
     ## boot sector signature
