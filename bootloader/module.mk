@@ -7,8 +7,10 @@ CURRENT := $(call anrem-current-path)
 boot_BUILD_DIR := $(CURRENT)/boot
 
 #module specific toolchain and toolchain options
-VBOX := VBoxManage
-VBOXFLAGS := convertfromraw  --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI
+VBOX := VirtualBox
+VBOXFLAGS := --debug --startvm 645f4065-2381-4b1c-997e-5e21c25f50fa
+VBOXMANAGE := VBoxManage
+VBOXMANAGEFLAGS := convertfromraw --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI
 DD := dd
 
 #define module params
@@ -21,14 +23,17 @@ STAGE2_IN := $(CURRENT)/stage2/stage2.out
 $(call anrem-target, $(BOOT_HDD)): $(BOOT_MERGED)
 # Create a vdi from raw boot.hd
 	rm -f $@
-	$(VBOX) $(VBOXFLAGS) $^ $@
+	$(VBOXMANAGE) $(VBOXMANAGEFLAGS) $^ $@
 
 $(call anrem-target, $(BOOT_MERGED)): $(STAGE1_IN) $(STAGE2_IN)
 # Create a raw disk containing the MBR (stage1) and stage2
 	$(DD) if=/dev/zero bs=$(DDBLOCKSIZE) count=$(call dd-count, $^) | cat $^ - > $@
 
+$(call anrem-target, runvm): $(BOOT_MERGED)
+	$(VBOX) $(VBOXFLAGS) $(BOOT_MERGED)
+
 $(call anrem-target, boot_clean):
-	rm -rf $(BOOT_HDD) $(BOOT_MERGED)
+	rm -f $(BOOT_HDD) $(BOOT_MERGED)
 
 $(call anrem-build, $(BOOT_HDD))
 $(call anrem-clean, boot_clean)

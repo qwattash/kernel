@@ -11,7 +11,8 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ STAGE_2,   0x7E00 
+.equ STAGE_2,   0x7E00
+.equ BOOT_RELOC, 0x0500
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -19,16 +20,12 @@
 ### 0x0000:0400	 +------------------------------+
 ###              |     BIOS                     |
 ### 0x0000:0500	 +------------------------------+
-###              |     BootLoader free Mem      |
-### 0x0000:1000  +------------------------------+
-###              |     GDT                      |
-### 0x0000:1018  +------------------------------+
+###              |     Relocated MBR            |
+### 0x0000:0600  +------------------------------+
 ###              |     BootLoader free Mem      |
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
-###              |     2nd Stage bootloader     |
-### 0x0000:8000  +------------------------------+
 ###              |     BootLoader free Mem      |
 ### 0x9000:0000	 +------------------------------+
 ###              |     Available Stack space    |
@@ -56,6 +53,8 @@ start:
 _start:
 ### boot sector starts here
 boot_begin:
+    # save drive index given by BIOS
+    pushw %dx
     ## disable interrupts, we are messing with segments now
     cli
     ## normalize %cs:%eip
@@ -72,20 +71,52 @@ boot_start:
     movw %ax,        %ss        # stack segment = SEG_STACK
     movw $INIT_SP,   %ax
     movw %ax,        %sp        # init stack pointer
-
+    
     sti                         # enable interrupts again
-        
+    
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
 
+    # find the VBR of the partition with index stage2_partition_index
+    # get partition entry index (0-3)
+    xorw %bx, %bx
+    movb stage2_partition_index, %bl
+    shlw $4, %bx
+    # get partion start LBA
+    movw 0x1C8(%bx), %ax
+    shll $0x10, %eax
+    movw 0x1C6(%bx), %ax
+    
+    # relocate current boot code
+    movw $BOOT_RELOC, %di
+    movw $0x7C00, %si
+    movw $0x100, %cx
+    cld
+    rep movsb
+
+    #calculate jump address
+    # @TODO make this a macro
+    movw $vbr_load, %bp
+    subw $0x7C00, %bp
+    addw $BOOT_RELOC, %bp
+    jmp *%bp
+    
+    # load VBR
+vbr_load:
+    movw $welcome,   %ax
+    call bios_strprint
+    jmp stop
+    # jump to VBR
+    
+    /*
     ## take second sector from hdd containing the C second stage
     pushw $STAGE_2              # Load second stage just below the first stage
     pushw $0x0001               # Want to read 1 sector only
     pushw $0x0002               # Selector number (rem: sectors start from 1)
     pushw $0x0000               # Head: 0
     pushw $0x0000               # Cylinder: 0
-    pushw $0x0080               # Drive: Hard Drive 0    
+    pushw $0x0080               # Drive: Hard Drive 0
     call  read_sector
     add   $0x0C,      %sp
 
@@ -119,6 +150,7 @@ next:
     #jump to second stage
     movl $STAGE_2, %eax
     jmp *%eax #absolute near jump
+    */
 end:	
     jmp  end                    # loop forever
     hlt                         # you should not be here!
@@ -148,7 +180,7 @@ bios_strprint_writeloop_end:
     popw  %ax
     ret
 ##################################################################
-
+    
 ##################################################################
 # void read_sector (byte drive, byte cylinder, byte head, byte sector, byte num_sect, void * buff)
 read_sector:
@@ -215,7 +247,6 @@ enable_A20:                     #void enable_A20
 #################################################################
 write_temp_gdt:                 #setup a temporary gdt
                                 #starting from 0x01000
-	
      pushw  %di
      movw   $0x1000, %di
      movw   $0x0,    (%di)
@@ -249,6 +280,16 @@ write_temp_gdt:                 #setup a temporary gdt
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
 A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
 A20_disabled:   .asciz "\b\bA20 Disabled.\r\n"
+/*
+this is the number of the partition from which we load the VBR
+the VBR of that partition will in turn do the job of loading the kernel
+by loading the stage 2 of the bootloader or load another operating system's
+boot code.
+The VBR acts as a stage1.5 in grub.
+This field will be modified by the installer
+*/
+stage2_partition_index:
+    .byte 0
 gdt_pointer:
 	.word 0x17                  #gdt limit
 	.long 0x1000		        #gdt base
