@@ -48,11 +48,13 @@
 
 ### What follows (between boot_begin: and signature: ) is the Stage 0.
 ### Any other code outside these first 512 bytes won't be copied onto the RAM by the BIOS.
+### see BIOS Boot Specification in docs
+### see BIOS Plug n Play Specification in docs
 
 .text
 start:
 _start:
-### MBR starts here
+### boot sector starts here
 boot_begin:
     ## disable interrupts, we are messing with segments now
     cli
