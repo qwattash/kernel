@@ -122,8 +122,7 @@ vbr_load:
     pushl %eax                  # push LBA
     pushw %dx                   # push second time for the drive parameter
     call read_sector
-1:
-    jmp 1b
+
     # jump to VBR
     jmp * BOOT_BEGIN
     /*
@@ -227,7 +226,7 @@ read_sector:
     movl 12(%bp), %eax
     movl %eax, RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_buffer)
     # set DAP pointer
-    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_buffer), %si
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap), %si
     movb $0x42, %ah
     int  $0x13
     # carry flag on error
@@ -322,6 +321,7 @@ This field will be modified by the installer
 stage2_partition_index:
     .byte 0
 ## Disk Address Packet
+.align 4
 dap:
 dap_size:
     .byte 0x10                  # size of DAP
