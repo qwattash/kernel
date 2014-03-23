@@ -22,7 +22,7 @@
 ###              |     BIOS                     |
 ### 0x0000:0500	 +------------------------------+
 ###              |     Relocated MBR            |
-### 0x0000:0600  +------------------------------+
+### 0x0000:0700  +------------------------------+
 ###              |     BootLoader free Mem      |
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
@@ -54,8 +54,8 @@
 # reloc_addr relocated base address
 # base_addr base address
 # addr address to be moved relative to base_addr to reloc_addr
-#define RELOC_LABEL(reloc_addr, base_addr, addr) reloc_addr - addr_base + addr
-    
+#define RELOC_LABEL(reloc_addr, base_addr, addr) (reloc_addr - base_addr + addr)
+
 ## end macros
     
 .text
@@ -63,13 +63,11 @@ start:
 _start:
 ### boot sector starts here
 boot_begin:
-    # save drive index given by BIOS
-    pushw %dx
     ## disable interrupts, we are messing with segments now
     cli
     ## normalize %cs:%eip
     ljmp $SEG_BOOT,  $boot_start
-
+	
 boot_start:
     ## init segment selectors
     movw $SEG_BOOT,  %ax        # 
@@ -84,6 +82,9 @@ boot_start:
     
     sti                         # enable interrupts again
     
+    # save drive index given by BIOS
+    pushw %dx
+
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
@@ -94,22 +95,21 @@ boot_start:
     movb stage2_partition_index, %bl
     shlw $4, %bx
     # get partion start LBA, little endian
-    movw 0x1C8(%bx), %ax
+    # offsets are relative to the segment 0x0000 so add 0x7C00
+    # to the offset relative to the start of the MBR
+    movw 0x7DC8(%bx), %ax
     shll $0x10, %eax
-    movw 0x1C6(%bx), %ax
+    movw 0x7DC6(%bx), %ax
     
     # relocate current boot code
     movw $BOOT_RELOC, %di       # get relocation base address
-    movw $BOOT_BEGIN, %si           # source
-    movw $0x100, %cx            # destination
+    movw $BOOT_BEGIN, %si       # source
+    movw $0x200, %cx            # destination
     cld
     rep movsb                   # copy
 
     # calculate jump address
-    # @TODO make this a macro
-    movw $vbr_load, %bp
-    subw $BOOT_BEGIN, %bp
-    addw $BOOT_RELOC, %bp
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, vbr_load), %bp
     #jump to relocated code, abs jump to (vbr_load - 0x7C00 + BOOT_RELOC)
     jmp *%bp
     
@@ -117,14 +117,15 @@ boot_start:
 vbr_load:
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
-    pushw $BOOT_BEGIN           # destination buffer
+    pushl $BOOT_BEGIN           # destination buffer
     pushw $0x01                 # number of sectors to read
     pushl %eax                  # push LBA
     pushw %dx                   # push second time for the drive parameter
     call read_sector
-    
+1:
+    jmp 1b
     # jump to VBR
-    jmp *$BOOT_BEGIN
+    jmp * BOOT_BEGIN
     /*
     ## take second sector from hdd containing the C second stage
     pushw $STAGE_2              # Load second stage just below the first stage
@@ -215,22 +216,26 @@ read_sector:
     
     #prepare for bios call
     # drive number in DL
-    movw 4(%bp), %dl
+    movb 4(%bp), %dl
     # load LBA
     movl 6(%bp), %eax
-    movl %eax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_start_low)
+    movl %eax, RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_start_low)
     # load number of sectors
     movw 10(%bp), %ax
-    movw %ax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_num_sectors)
+    movw %ax, RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_num_sectors)
     # load dap destination buffer
     movl 12(%bp), %eax
-    movl %eax, RELOC_LABEL($BOOT_RELOC, $BOOT_BEGIN, dap_buffer)
-    movb $0x42,      %ah
+    movl %eax, RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_buffer)
+    # set DAP pointer
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, dap_buffer), %si
+    movb $0x42, %ah
     int  $0x13
     # carry flag on error
     # AH return code
-    # jc error
-    
+    jnc read_success
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, read_error), %ax
+    call bios_strprint
+read_success:
     #restore regs
     popw %dx
     popl %eax
@@ -305,6 +310,7 @@ write_temp_gdt:                 #setup a temporary gdt
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
 A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
 A20_disabled:   .asciz "\b\bA20 Disabled.\r\n"
+read_error:	.asciz "\b\bRead failed. Damn!\r\n"
 /*
 this is the number of the partition from which we load the VBR
 the VBR of that partition will in turn do the job of loading the kernel
@@ -324,21 +330,53 @@ dap_unused:
 dap_num_sectors:                # some Phoenix BIOSes limit this to 127
     .word 0x00
 dap_buffer:
-    .dword 0x00                 # seg:offset of destination buffer - take care of little endian
+    .long 0x00                 # seg:offset of destination buffer - take care of little endian
 dap_start_low:
-    .dword 0x00                 # LBA of first sector, low 32-bit
+    .long 0x00                 # LBA of first sector, low 32-bit
 dap_start_high:
-    .dword 0x00                 # LBA of first sector, high 32-bit
+    .long 0x00                 # LBA of first sector, high 32-bit
     
 gdt_pointer:
 	.word 0x17              #gdt limit
 	.long 0x1000            #gdt base
 boot_end:
     ##pad until signature
-    .fill   510 - (boot_end - boot_begin)
+    .fill   446 - (boot_end - boot_begin)
+pt_entry0:
+    .byte 0x80			# pt status
+    .fill 3			# CHS of first absolute sector
+    .byte 0x0c			# pt type
+    .fill 3			# CHS of last absolute sector
+    .long 0x1			# LBA of first absolute sector
+    .long 0x1			# # of sectors in pt
+pt_entry1:
+    .byte 0x00			# pt status
+    .fill 3			# CHS of first absolute sector
+    .byte 0x00			# pt type
+    .fill 3			# CHS of last absolute sector
+    .long 0x0			# LBA of first absolute sector
+    .long 0x0			# # of sectors in pt
+pt_entry2:
+    .byte 0x00			# pt status
+    .fill 3			# CHS of first absolute sector
+    .byte 0x00			# pt type
+    .fill 3			# CHS of last absolute sector
+    .long 0x0			# LBA of first absolute sector
+    .long 0x0			# # of sectors in pt
+pt_entry3:
+    .byte 0x00			# pt status
+    .fill 3			# CHS of first absolute sector
+    .byte 0x00			# pt type
+    .fill 3			# CHS of last absolute sector
+    .long 0x0			# LBA of first absolute sector
+    .long 0x0			# # of sectors in pt
 signature:
     ## boot sector signature
     .byte   0x55
     .byte   0xaa
-
 ### MBR ends here
+# trial
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, welcome), %ax
+    call RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint)
+1:
+    jmp 1b

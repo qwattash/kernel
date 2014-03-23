@@ -2,7 +2,7 @@
 # configuration variables for the project
 #
 VBOX := VirtualBox
-VBOXFLAGS := --debug --startvm 645f4065-2381-4b1c-997e-5e21c25f50fa
+VBOXFLAGS := --debug --startvm Kernel
 VBOXMANAGE := VBoxManage
 VBOXMANAGEFLAGS := convertfromraw --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI
 DD := dd

@@ -9,3 +9,5 @@ bootloader/stage1/*.o
 bootloader/stage1/*sect
 bootloader/stage2/*.o
 bootloader/stage2/*.out
+bootloader/stage1/*.s
+bootloader/stage2/*.s
