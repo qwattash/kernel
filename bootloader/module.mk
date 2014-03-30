@@ -25,7 +25,7 @@ $(call anrem-target, $(BOOT_MERGED)): $(STAGE1_IN) $(STAGE2_IN)
 	$(DD) if=/dev/zero bs=$(DDBLOCKSIZE) count=$(call dd-count, $^) | cat $^ - > $@
 
 $(call anrem-target, runvm): $(BOOT_MERGED)
-	$(VBOX) $(VBOXFLAGS) $(BOOT_MERGED)
+	$(VBOX) $(VBOXFLAGS)
 
 $(call anrem-target, boot_clean):
 	rm -f $(BOOT_HDD) $(BOOT_MERGED)

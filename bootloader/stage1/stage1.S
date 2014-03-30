@@ -88,7 +88,7 @@ boot_start:
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
-
+	
     # find the VBR of the partition with index stage2_partition_index
     # get partition entry index (0-3)
     xorw %bx, %bx
@@ -122,9 +122,11 @@ vbr_load:
     pushl %eax                  # push LBA
     pushw %dx                   # push second time for the drive parameter
     call read_sector
-
+    add $0x0c, %sp
+	
     # jump to VBR
-    jmp * BOOT_BEGIN
+    movw $BOOT_BEGIN, %bp
+    jmp *%bp
     /*
     ## take second sector from hdd containing the C second stage
     pushw $STAGE_2              # Load second stage just below the first stage
@@ -307,6 +309,7 @@ write_temp_gdt:                 #setup a temporary gdt
     
 #data
 welcome:        .asciz "\b\bWelcome to Custom Boot v0\r\n"
+sector2welcome:	.asciz "\b\bWelcome to Sector 2\r\n"
 A20_enabled:    .asciz "\b\bA20 Enabled.\r\n"
 A20_disabled:   .asciz "\b\bA20 Disabled.\r\n"
 read_error:	.asciz "\b\bRead failed. Damn!\r\n"
@@ -321,7 +324,6 @@ This field will be modified by the installer
 stage2_partition_index:
     .byte 0
 ## Disk Address Packet
-.align 4
 dap:
 dap_size:
     .byte 0x10                  # size of DAP
@@ -376,7 +378,8 @@ signature:
     .byte   0xaa
 ### MBR ends here
 # trial
-    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, welcome), %ax
-    call RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint)
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, sector2welcome), %ax
+    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint), %bp
+    call %bp
 1:
     jmp 1b
