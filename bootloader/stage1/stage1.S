@@ -88,11 +88,36 @@ boot_start:
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
-	
+############# move to a function TODO	
     # find the VBR of the partition with index stage2_partition_index
     # get partition entry index (0-3)
     xorw %bx, %bx
-    movb stage2_partition_index, %bl
+    xorw %ax, %ax
+    movw $pt_entry0, %si
+    # check active flag for all partitions
+    movw $0x04, %cx
+vbr_loop:
+    movb (%si), %al
+    andb $0x80, %al
+    jz vbr_continue
+    incw %bx # increment active partitions counter
+    movw %cx, %ax # move current iteration index to ax
+    # decw %ax
+vbr_continue:	
+    subw $0x10, %si
+    loop vbr_loop
+    # check for errors
+    cmpw $0x01, %bx
+    je vbr_ok # OK
+    jb 1f
+    call error
+    .ascii "Too many active partitions\n\r"
+1:
+    call error
+    .ascii "No active partition found\n\r"
+vbr_ok:	
+    movw %ax, %bx
+########### end move to function
     shlw $4, %bx
     # get partion start LBA, little endian
     # offsets are relative to the segment 0x0000 so add 0x7C00
@@ -202,7 +227,19 @@ bios_strprint_writeloop_end:
 
     ret
 ##################################################################
-    
+
+##################################################################
+# display error message and return to BIOS
+# %sp pointer to error message
+error:
+    popw %ax
+    call bios_strprint
+    int $0x18 # boot error, see BIOS BBS specification
+1:
+    hlt
+    jmp 1b
+##################################################################
+	
 ##################################################################
 # WARNING - the function shall not be called before the relocation of the boot code
 # void read_sector (byte drive, dword lba, byte num_sect, void * buff)
