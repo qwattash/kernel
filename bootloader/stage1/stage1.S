@@ -96,7 +96,7 @@ boot_start:
     # get partion start LBA, little endian
     # offsets are relative to the segment 0x0000 so add 0x7C00
     # to the offset relative to the start of the MBR
-    movw 0x7DC8(%bx), %ax # io ragiono su quello che abbiamo scritto xD per noi l'lba è a 7dc6
+    movw 0x7DC8(%bx), %ax # 
     shll $0x10, %eax
     movw 0x7DC6(%bx), %ax
     # now check that the LBA is something meaningful
