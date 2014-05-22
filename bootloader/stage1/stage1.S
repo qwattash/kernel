@@ -3,6 +3,8 @@
 ##
 ## Stage 1
 
+#include "stage1.h"
+    
 ## real mode
 .code16
 
@@ -51,7 +53,6 @@
 ### see BIOS Plug n Play Specification in docs
 
 ## macros
-
 # reloc_addr relocated base address
 # base_addr base address
 # addr address to be moved relative to base_addr to reloc_addr
@@ -108,7 +109,7 @@ boot_start:
     ja vbr_lba_ok
 vbr_lba_err:
     pushw $err_active_partition # inconsistent entry
-    jmp error
+    call error
 vbr_lba_ok:
     /*##########
     # relocate current boot code
@@ -174,9 +175,11 @@ bios_strprint_writeloop_end:
 
 ##################################################################
 # display error message and return to BIOS
-# %sp pointer to error message
+# 2(%sp) pointer to error message (first arg to function)
 error:
-    popw %ax
+    #popw %ax
+    movw %sp, %bp
+    movw 2(%bp), %ax
     call bios_strprint
     int $0x18 # boot error, see BIOS BBS specification
 1:
@@ -222,9 +225,9 @@ read_sector:
     # carry flag on error
     # AH return code
     jnc read_success
-    pushw read_error
+    pushw $read_error
     //pushw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, read_error)
-    jmp error
+    call error
 read_success:
     #restore regs
     popw %dx
@@ -266,10 +269,10 @@ vbr_continue:
     je vbr_ok # OK
     jb 1f
     pushw $err_active_partition # too many active entries
-    jmp error
+    call error
 1:
     pushw $err_active_partition # no active partition
-    jmp error
+    call error
 vbr_ok:
     # restore registers (except %ax)
     popw %si
@@ -288,7 +291,14 @@ read_error:	.asciz "Read failed. Damn!\r\n"
 
 boot_end:
     ##pad until partition table 
-    .fill   446 - (boot_end - boot_begin)
+    .fill 438 - (boot_end - boot_begin)
+jmp_table_start:
+    #jmp *bios_strprint
+    pushw $bios_strprint
+    ret
+    pushw $error
+    ret
+    #jmp *error
 #7DBE
 pt_entry0:
     .byte 0x80			# pt status
@@ -327,8 +337,13 @@ signature:
 # trial
     //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, sector2welcome), %ax
     //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint), %bp
-    movw sector2welcome, %ax
-    movw bios_strprint, %bp
+    movw $sector2welcome, %ax
+    #movw $bios_strprint, %bp
+    #movw $BIOS_STR_PRINT, %bp
+    pushw $err_active_partition
+    movw $ERROR, %bp
+    #movw $0x7DB6, %bp
+
     call *%bp
 1:
     jmp 1b
