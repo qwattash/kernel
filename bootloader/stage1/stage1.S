@@ -11,8 +11,7 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ STAGE_2,   0x7E00
-.equ BOOT_RELOC, 0x0500
+.equ VBR_BEGIN, 0x0500
 .equ BOOT_BEGIN, 0x7C00
 
 ### memory map documentation
@@ -21,7 +20,7 @@
 ### 0x0000:0400	 +------------------------------+
 ###              |     BIOS                     |
 ### 0x0000:0500	 +------------------------------+
-###              |     Relocated MBR            |
+###              |     Boot partition VBR       |
 ### 0x0000:0700  +------------------------------+ 
 ###	         |     DAP			|
 ### 0x0000:0710  +------------------------------+
@@ -56,10 +55,10 @@
 # reloc_addr relocated base address
 # base_addr base address
 # addr address to be moved relative to base_addr to reloc_addr
-#define RELOC_LABEL(reloc_addr, base_addr, addr) (reloc_addr - base_addr + addr)
+//#define RELOC_LABEL(reloc_addr, base_addr, addr) (reloc_addr - base_addr + addr) # rm
 
 ## end macros
-    
+
 .text
 start:
 _start:
@@ -111,6 +110,7 @@ vbr_lba_err:
     pushw $err_active_partition # inconsistent entry
     jmp error
 vbr_lba_ok:
+    /*##########
     # relocate current boot code
     movw $BOOT_RELOC, %di       # get relocation base address
     movw $BOOT_BEGIN, %si       # source
@@ -122,12 +122,12 @@ vbr_lba_ok:
     movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, vbr_load), %bp
     #jump to relocated code, abs jump to (vbr_load - 0x7C00 + BOOT_RELOC)
     jmp *%bp
-    
+    #############*/
     # load VBR
 vbr_load:
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
-    pushl $BOOT_BEGIN           # destination buffer
+    pushl $VBR_BEGIN           # destination buffer
     pushw $0x01                 # number of sectors to read
     pushl %eax                  # push LBA
     pushw %dx                   # push second time for the drive parameter
@@ -135,7 +135,7 @@ vbr_load:
     add $0x0c, %sp
 	
     # jump to VBR
-    movw $BOOT_BEGIN, %bp
+    movw $VBR_BEGIN, %bp
     jmp *%bp
 
 end:	
@@ -195,7 +195,7 @@ read_sector:
     #save regs
     pushl %eax
     pushw %dx
-
+    
     # drive number in DL
     movb 4(%bp), %dl
 	
@@ -222,7 +222,8 @@ read_sector:
     # carry flag on error
     # AH return code
     jnc read_success
-    pushw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, read_error)
+    pushw read_error
+    //pushw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, read_error)
     jmp error
 read_success:
     #restore regs
@@ -324,8 +325,10 @@ signature:
 # 7E00
 ### MBR ends here
 # trial
-    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, sector2welcome), %ax
-    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint), %bp
+    //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, sector2welcome), %ax
+    //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint), %bp
+    movw sector2welcome, %ax
+    movw bios_strprint, %bp
     call *%bp
 1:
     jmp 1b
