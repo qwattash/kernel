@@ -15,7 +15,7 @@ BOOT_MERGED := $(boot_BUILD_DIR)/boot.hd
 STAGE1_IN := $(CURRENT)/stage1/mbr.sect
 STAGE2_IN := $(CURRENT)/stage2/stage2.out
 
-$(call anrem-target, $(BOOT_HDD)): $(BOOT_MERGED)
+$(call anrem-build, $(BOOT_HDD)): $(BOOT_MERGED)
 # Create a vdi from raw boot.hd
 	rm -f $@
 	$(VBOXMANAGE) $(VBOXMANAGEFLAGS) $^ $@
@@ -27,8 +27,5 @@ $(call anrem-target, $(BOOT_MERGED)): $(STAGE1_IN) $(STAGE2_IN)
 $(call anrem-target, runvm): $(BOOT_HDD)
 	$(VBOX) $(VBOXFLAGS)
 
-$(call anrem-target, boot_clean):
+$(call anrem-clean):
 	rm -f $(BOOT_HDD) $(BOOT_MERGED)
-
-$(call anrem-build, $(BOOT_HDD))
-$(call anrem-clean, boot_clean)

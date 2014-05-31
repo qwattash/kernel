@@ -15,8 +15,5 @@ $(call anrem-target, $(STAGE1_TARGET)): $(STAGE1_OBJS)
 $(call anrem-target, $(STAGE1_OBJS)): $(STAGE1_SOURCES)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(call anrem-target, stage1_clean):
+$(call anrem-clean):
 	rm -rf $(STAGE1_OBJS) $(STAGE1_TARGET)
-
-$(call anrem-build, $(STAGE1_TARGET))
-$(call anrem-clean, stage1_clean)

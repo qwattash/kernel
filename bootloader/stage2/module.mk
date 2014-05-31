@@ -20,14 +20,10 @@ $(call anrem-target, $(STAGE2_COBJS)): $(STAGE2_CSOURCES)
 $(call anrem-target, $(STAGE2_STUB_OBJ)): $(STAGE2_STUB)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
-$(call anrem-target, $(STAGE2_TARGET)): $(STAGE2_STUB_OBJ) $(STAGE2_COBJS)
+$(call anrem-build, $(STAGE2_TARGET)): $(STAGE2_STUB_OBJ) $(STAGE2_COBJS)
 	$(LD) $(LDFLAGS) -oformat=binary -T $(LD_SCRIPT) -o $(path)/stage2.tmp $^
 	objcopy -O binary $(path)/stage2.tmp $@
 	rm $(path)/stage2.tmp
 
-$(call anrem-target, stage2_clean):
+$(call anrem-clean):
 	rm -rf $(STAGE2_COBJS) $(STAGE2_TARGET) $(STAGE2_STUB_OBJ)
-
-$(call anrem-build, $(STAGE2_TARGET))
-$(call anrem-clean, stage2_clean)
-

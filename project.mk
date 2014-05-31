@@ -1,11 +1,26 @@
+#architecture
+ARCH := i386
+
+#toolchain
+CC := gcc
+LD := ld
+
+#toolchain options
+CFLAGS := -Wall -Wno-implicit-function-declaration -g -m32 -nostdlib -nodefaultlibs -nostartfiles -fno-builtin
+ASMFLAGS := 
+LDFLAGS := -m elf_i386
+LDASMFLAGS := 
 #
-# configuration variables for the project
+# configuration variables for dd and virtualbox
 #
+DDBLOCKSIZE := 512
+VBOXMINSIZE := 1048576
 VBOX := VirtualBox
 VBOXFLAGS := --debug --startvm Kernel
 VBOXMANAGE := VBoxManage
 VBOXMANAGEFLAGS := convertfromraw --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ed -format VDI
 DD := dd
+
 
 #
 # Utility functions
