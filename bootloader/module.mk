@@ -24,6 +24,18 @@ $(call anrem-target, $(HDD_IMG)): $(STAGE1_IN)
 	mv $@.new $@
 	$(DISKMGMT) mbr $@ $^
 
+#$(HDD_VDI).fin: $(HDD_IMG).fin
+#	--image->vdi
+#
+#$(HDD_IMG).fin: $(STAGE1_IN) $(HDD_IMG).tmp
+#	--mod->img
+#
+#$(HDD_IMG).tmp: $(HDD_VDI).tmp
+#	--first-line
+#
+#$(HDD_VDI).tmp: #<<softlink
+#	--gen-disk
+
 $(call anrem-target, gen-disk):
 	rm -f $(HDD_IMG)
 	$(DISKMGMT) create $(HDD_IMG) $(HDDSIZE)
@@ -34,7 +46,7 @@ $(call anrem-target, gen-disk):
 $(call anrem-target, runvm): $(HDD_VDI)
 	$(VBOX) $(VBOXFLAGS)
 
-$(call anrem-clean):
+$(call anrem-target, disk-clean):
 	rm -f $(HDD_IMG) $(HDD_VDI)
 
 
