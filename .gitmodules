@@ -1,0 +1,3 @@
+[submodule "bootloader/utils/disk-mgmt-tool"]
+	path = bootloader/utils/disk-mgmt-tool
+	url = https://github.com/xEnVrE/disk-mgmt-tool.git
