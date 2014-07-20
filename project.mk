@@ -23,7 +23,7 @@ VBOXMANAGEFLAGS := convertfromraw --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ee -f
 #
 # configuration variables for disk-mgmt-tool
 #
-DISKMGMT := python2 bootloader/utils/disk-mgmt-tool/diskmgmt.py
+DISKMGMT := python bootloader/utils/disk-mgmt-tool/diskmgmt.py
 HDDSIZE := 128 # in MiB
 ##
 ## 1st partition

@@ -15,40 +15,27 @@ HDD_IMG := $(boot_BUILD_DIR)/hdd.img
 STAGE1_IN := $(CURRENT)/stage1/mbr.sect
 STAGE2_IN := $(CURRENT)/stage2/stage2.out
 
-$(call anrem-build, $(HDD_VDI)): $(HDD_IMG)
+$(call anrem-build, $(HDD_VDI)) : $(HDD_IMG)
 	rm -f $@
 	$(VBOXMANAGE) $(VBOXMANAGEFLAGS) $^ $@
 
-$(call anrem-target, $(HDD_IMG)): $(STAGE1_IN)
-	$(VBOXMANAGE) clonehd $(HDD_VDI) $@.new --format RAW
-	mv $@.new $@
-	$(DISKMGMT) mbr $@ $^
+$(call anrem-target, $(HDD_IMG)): $(STAGE1_IN) $(HDD_VDI).orig
+	rm -f $@
+	$(VBOXMANAGE) clonehd $(HDD_VDI) $(HDD_IMG) --format RAW
+	$(DISKMGMT) mbr $@ $(STAGE1_IN)
 
-#$(HDD_VDI).fin: $(HDD_IMG).fin
-#	--image->vdi
-#
-#$(HDD_IMG).fin: $(STAGE1_IN) $(HDD_IMG).tmp
-#	--mod->img
-#
-#$(HDD_IMG).tmp: $(HDD_VDI).tmp
-#	--first-line
-#
-#$(HDD_VDI).tmp: #<<softlink
-#	--gen-disk
-
-$(call anrem-target, gen-disk):
-	rm -f $(HDD_IMG)
+$(call anrem-target, $(HDD_VDI).orig) :
 	$(DISKMGMT) create $(HDD_IMG) $(HDDSIZE)
 	sudo $(DISKMGMT) format $(HDD_IMG) $(FIRSTP_FS) $(FIRSTP_START) $(FIRSTP_END)
 	$(DISKMGMT) active $(HDD_IMG) $(FIRSTP_INDEX)
 	$(VBOXMANAGE) $(VBOXMANAGEFLAGS) $(HDD_IMG) $(HDD_VDI)
+	ln $(HDD_VDI) $@ 
 
 $(call anrem-target, runvm): $(HDD_VDI)
 	$(VBOX) $(VBOXFLAGS)
 
 $(call anrem-target, disk-clean):
-	rm -f $(HDD_IMG) $(HDD_VDI)
-
+	rm -f $(HDD_IMG) $(HDD_VDI) $(HDD_VDI).orig
 
 ### DEPRECATED - START
 #$(call anrem-target, $(HDD_IMG)): $(STAGE1_IN) $(STAGE2_IN)
