@@ -21,7 +21,8 @@ $(call anrem-build, $(HDD_VDI)) : $(HDD_IMG)
 
 $(call anrem-target, $(HDD_IMG)): $(STAGE1_IN) $(HDD_VDI).orig
 	rm -f $@
-	$(VBOXMANAGE) clonehd $(HDD_VDI) $(HDD_IMG) --format RAW
+	@#$(VBOXMANAGE) clonehd $(HDD_VDI) $@ --format RAW
+	qemu-img convert -f vdi $(HDD_VDI) -O raw $@
 	$(DISKMGMT) mbr $@ $(STAGE1_IN)
 
 $(call anrem-target, $(HDD_VDI).orig) :
@@ -36,9 +37,3 @@ $(call anrem-target, runvm): $(HDD_VDI)
 
 $(call anrem-target, disk-clean):
 	rm -f $(HDD_IMG) $(HDD_VDI) $(HDD_VDI).orig
-
-### DEPRECATED - START
-#$(call anrem-target, $(HDD_IMG)): $(STAGE1_IN) $(STAGE2_IN)
-# Create a raw disk containing the MBR (stage1) and stage2
-#	$(DD) if=/dev/zero bs=$(DDBLOCKSIZE) count=$(call dd-count, $^) | cat $^ - > $@
-### DEPRECATED - END
