@@ -3,9 +3,9 @@
 \#*
 .\#*
 #object files and compilation stuff
-bootloader/boot/*.img
-bootloader/boot/*.vdi
-bootloader/boot/*.vdi.orig
+exec-envir/boot/*.img
+exec-envir/boot/*.vdi
+exec-envir/boot/*.vdi.orig
 bootloader/stage1/*.o
 bootloader/stage1/*sect
 bootloader/stage2/*.o

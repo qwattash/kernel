@@ -1,5 +1,5 @@
 #
-# Top level makefile for the bootloader module
+# Makefile for the execution envirnoment
 #
 
 #paths
@@ -9,23 +9,21 @@ HDD_VDI := $(BOOT_DIR)/hdd.vdi
 HDD_IMG := $(BOOT_DIR)/hdd.img
 
 #external modules
-STAGE1_IN := $(CURRENT)/stage1/mbr.sect
-STAGE2_IN := $(CURRENT)/stage2/stage2.out
+STAGE1_IN := $(MOD_stage1)/mbr.sect
+STAGE2_IN := $(MOD_stage2)/stage2.out
 
 #VirtualBox vars
 VBOX := VirtualBox
 VBOXFLAGS := --debug --startvm Kernel
-
 #VBoxManage vars
 VBOXMANAGE := VBoxManage
 VBOXMANAGEFLAGS := convertfromraw --uuid 84e10c7b-5fa0-4c91-9ed1-722b372570ee -format VDI
-
 #qemu-img
 QEMUIMG := qemu-img
 QEMUIMGFLAGS := convert -f vdi -O raw
 
 #disk-mgmt-tool vars
-DISKMGMT := python bootloader/utils/disk-mgmt-tool/diskmgmt.py
+DISKMGMT := python $(CURRENT)/utils/disk-mgmt-tool/diskmgmt.py
 HDDSIZE := 128 # in MiB
 #first partition: Size 64MiB; Sectors 2048-133120; Type FAT32; Index 1.
 FIRSTP_START := 2048
