@@ -15,4 +15,3 @@ ASMFLAGS :=
 LDFLAGS := -m elf_i386
 LDASMFLAGS := 
 
-
