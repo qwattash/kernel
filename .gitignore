@@ -3,13 +3,12 @@
 \#*
 .\#*
 #object files and compilation stuff
-exec-envir/boot/*.img
-exec-envir/boot/*.vdi
-exec-envir/boot/*.vdi.orig
-bootloader/stage1/*.o
-bootloader/stage1/*sect
-bootloader/stage2/*.o
-bootloader/stage2/*.out
-bootloader/stage1/*.s
-bootloader/stage2/*.s
-bootloader/utils/disk-mgmt-tool/*.pyc
+*.img
+*.vdi
+*.vdi.orig
+*.o
+*.out
+*.sect
+*.s
+*.pyc
+exec-envir/vmachine/Kernel/*
