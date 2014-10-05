@@ -2,18 +2,20 @@
 
 CURRENT := $(call anrem-current-path)
 
+$(<@)
 #define module params
-STAGE1_SOURCES := $(CURRENT)/stage1.s
-STAGE1_OBJS := $(patsubst %.s, %.o, $(STAGE1_SOURCES))
-STAGE1_TARGET := $(CURRENT)/mbr.sect
+$(@)STAGE1_SOURCES := $(CURRENT)/stage1.s
+$(@)STAGE1_OBJS := $(patsubst %.s, %.o, $(call anrem-local-get, STAGE1_SOURCES))
+$(@)STAGE1_TARGET := $(CURRENT)/mbr.sect
+$(@>)
 
-$(call anrem-target, $(STAGE1_TARGET)): $(STAGE1_OBJS)
+$(call anrem-target, @STAGE1_TARGET): $(@STAGE1_OBJS)
 	$(LD) $(LDFLAGS) --Ttext=0x7c00 -oformat=binary -o $(addsuffix .out, $@) $^
 	objcopy -O binary $(addsuffix .out, $@) $@
 	rm -f $(addsuffix .out, $@)
 
-$(call anrem-target, $(STAGE1_OBJS)): $(STAGE1_SOURCES)
+$(call anrem-target, @STAGE1_OBJS): $(@STAGE1_SOURCES)
 	$(CC) $(CFLAGS) -c -o $@ $^
 
 $(call anrem-clean):
-	rm -rf $(STAGE1_OBJS) $(STAGE1_TARGET)
+	rm -rf $(@STAGE1_OBJS) $(@STAGE1_TARGET)

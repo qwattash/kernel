@@ -2,6 +2,6 @@
 # Use anrem initialization
 #
 
-ANREM_COMPONENTS := anrem/mk
+ANREM_BASE := ./anrem
 
 include anrem/makefile
