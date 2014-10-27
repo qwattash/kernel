@@ -2,15 +2,17 @@
 # Makefile for the execution envirnoment / vmachine section
 #
 
+CURRENT := $(call anrem-current-path)
+
 #vars
 $(<@)
 $(@)VM_NAME := Kernel
 
 #paths
-$(@)CURRENT := $(call anrem-current-path)
-$(@)ABS_CURRENT := $(shell readlink -f $(CURRENT))
-$(@)VM_VBOX := $(CURRENT)/$(VM_NAME)/$(VM_NAME).vbox
+$(@)ABS_CURRENT := $(abspath $(CURRENT))
+$(@)VM_VBOX := $(CURRENT)/$(call anrem-local-get, VM_NAME)/$(call anrem-local-get, VM_NAME).vbox
 $(@)BOOT_VDI := $(exec|boot)/hdd.vdi
+$(@)BOOT_VDI_ORIG := $(exec|boot)/hdd.vdi.orig
 
 $(@>)
 
@@ -25,3 +27,4 @@ $(call anrem-target, @VM_VBOX) :
 
 $(call anrem-target, vm-clean) :
 	VBoxManage unregistervm $(@VM_NAME) --delete	
+	rm -f $(@BOOT_VDI_ORIG)

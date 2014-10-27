@@ -96,7 +96,7 @@ boot_start:
     # get partion start LBA, little endian
     # offsets are relative to the segment 0x0000 so add 0x7C00
     # to the offset relative to the start of the MBR
-    movw 0x7DC8(%bx), %ax # 
+    movw 0x7DC8(%bx), %ax 
     shll $0x10, %eax
     movw 0x7DC6(%bx), %ax
     # now check that the LBA is something meaningful
@@ -111,7 +111,7 @@ vbr_lba_err:
     pushw $err_active_partition # inconsistent entry
     call error
 vbr_lba_ok:
-    /*##########
+    /*########## 
     # relocate current boot code
     movw $BOOT_RELOC, %di       # get relocation base address
     movw $BOOT_BEGIN, %si       # source
@@ -128,7 +128,7 @@ vbr_lba_ok:
 vbr_load:
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
-    pushl $VBR_BEGIN           # destination buffer
+    pushl $VBR_BEGIN            # destination buffer
     pushw $0x01                 # number of sectors to read
     pushl %eax                  # push LBA
     pushw %dx                   # push second time for the drive parameter
@@ -177,11 +177,10 @@ bios_strprint_writeloop_end:
 # display error message and return to BIOS
 # 2(%sp) pointer to error message (first arg to function)
 error:
-    #popw %ax
-    movw %sp, %bp
-    movw 2(%bp), %ax
+    popw %ax
+    popw %ax
     call bios_strprint
-    int $0x18 # boot error, see BIOS BBS specification
+    int  $0x18 # boot error, see BIOS BBS specification
 1:
     hlt
     jmp 1b
@@ -301,12 +300,12 @@ jmp_table_start:
     #jmp *error
 #7DBE
 pt_entry0:
-    .byte 0x80			# pt status
+    .byte 0x00			# pt status
     .fill 3			# CHS of first absolute sector
     .byte 0x0c			# pt type
     .fill 3			# CHS of last absolute sector
-    .long 0x1			# LBA of first absolute sector
-    .long 0x1			# # of sectors in pt
+    .long 0x0			# LBA of first absolute sector
+    .long 0x0			# # of sectors in pt
 pt_entry1:
     .byte 0x00			# pt status
     .fill 3			# CHS of first absolute sector
@@ -334,16 +333,3 @@ signature:
     .byte   0xaa
 # 7E00
 ### MBR ends here
-# trial
-    //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, sector2welcome), %ax
-    //movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, bios_strprint), %bp
-    movw $sector2welcome, %ax
-    #movw $bios_strprint, %bp
-    #movw $BIOS_STR_PRINT, %bp
-    pushw $err_active_partition
-    movw $ERROR, %bp
-    #movw $0x7DB6, %bp
-
-    call *%bp
-1:
-    jmp 1b
