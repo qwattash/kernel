@@ -26,5 +26,6 @@ $(call anrem-target, @VM_VBOX) :
 	VBoxManage modifyvm $(@VM_NAME) --description "A kernel for fun." --memory 512 --cpus 1 --boot1 disk
 
 $(call anrem-target, vm-clean) :
-	VBoxManage unregistervm $(@VM_NAME) --delete	
 	rm -f $(@BOOT_VDI_ORIG)
+	VBoxManage unregistervm $(@VM_NAME) --delete	
+
