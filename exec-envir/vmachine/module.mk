@@ -16,7 +16,7 @@ $(@)BOOT_VDI_ORIG := $(exec|boot)/hdd.vdi.orig
 
 $(@>)
 
-$(call anrem-target, vm-run) : $(@VM_VBOX)
+$(call anrem-target, vm-run) : $(@BOOT_VDI) $(@VM_VBOX)
 	VBoxManage startvm $(@VM_NAME) --type sdl
 
 $(call anrem-target, @VM_VBOX) : 
