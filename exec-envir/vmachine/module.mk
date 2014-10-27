@@ -13,6 +13,7 @@ $(@)ABS_CURRENT := $(abspath $(CURRENT))
 $(@)VM_VBOX := $(CURRENT)/$(call anrem-local-get, VM_NAME)/$(call anrem-local-get, VM_NAME).vbox
 $(@)BOOT_VDI := $(exec|boot)/hdd.vdi
 $(@)BOOT_VDI_ORIG := $(exec|boot)/hdd.vdi.orig
+$(@)BOOT_IMG := $(exec|boot)/hdd.img
 
 $(@>)
 
@@ -26,6 +27,6 @@ $(call anrem-target, @VM_VBOX) :
 	VBoxManage modifyvm $(@VM_NAME) --description "A kernel for fun." --memory 512 --cpus 1 --boot1 disk
 
 $(call anrem-target, vm-clean) :
-	rm -f $(@BOOT_VDI_ORIG)
+	rm -f $(@BOOT_VDI_ORIG) $(@BOOT_IMG)
 	VBoxManage unregistervm $(@VM_NAME) --delete	
 
