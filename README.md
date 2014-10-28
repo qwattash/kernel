@@ -14,3 +14,6 @@ Getting started
 <pre><code>make
 make vm-run
 </code></pre>
+* To clean the VirtualBox environment:
+<pre><code>make vm-clean
+</code></pre>
