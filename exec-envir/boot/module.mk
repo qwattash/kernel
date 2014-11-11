@@ -8,8 +8,7 @@ $(<@)
 $(@)HDD_VDI := $(CURRENT)/hdd.vdi
 $(@)HDD_IMG := $(CURRENT)/hdd.img
 #bootloader stages paths
-$(@)STAGE1_IN := $(bootloader|stage1)/mbr.sect
-$(@)STAGE2_IN := $(bootloader|stage2)/stage2.out
+$(@)BOOTLOADER_IMG := $(|bootloader)/bootloader.out
 
 #disk-mgmt-tool vars
 $(@)DISKMGMT := python $(|exec)/utils/disk-mgmt-tool/diskmgmt.py
@@ -27,7 +26,7 @@ $(call anrem-build, @HDD_VDI) : $(@HDD_IMG)
 	rm -f $@
 	VBoxManage convertfromraw --uuid $(@DISK_UUID) -format VDI $^ $@
 
-$(call anrem-target, @HDD_IMG): $(@STAGE1_IN) $(@HDD_VDI).orig
+$(call anrem-target, @HDD_IMG): $(@BOOTLOADER_IMG) $(@HDD_VDI).orig
 	rm -f $@
 	qemu-img convert -f vdi -O raw $(@HDD_VDI) $@
 	$(@DISKMGMT) mbr $@ $(@STAGE1_IN)

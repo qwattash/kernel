@@ -9,11 +9,16 @@
 .code16
 
 .global start, _start
+
+## global functions
+.global bios_strprint
+    
+    
 ## segments
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ VBR_BEGIN, 0x0500
+.equ VBR_BEGIN, 0x7E00
 .equ BOOT_BEGIN, 0x7C00
 
 ### memory map documentation
@@ -22,7 +27,7 @@
 ### 0x0000:0400	 +------------------------------+
 ###              |     BIOS                     |
 ### 0x0000:0500	 +------------------------------+
-###              |     Boot partition VBR       |
+###              |     free Mem                 |
 ### 0x0000:0700  +------------------------------+ 
 ###	         |     DAP			|
 ### 0x0000:0710  +------------------------------+
@@ -30,7 +35,7 @@
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
-###              |     BootLoader free Mem      |
+###              |     VBR                      |
 ### 0x9000:0000	 +------------------------------+
 ###              |     Available Stack space    |
 ### 0x9000:7C00	 +------------------------------+
