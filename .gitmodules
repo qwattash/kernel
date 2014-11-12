@@ -1,6 +1,3 @@
-[submodule "exec-envir/utils/disk-mgmt-tool"]
-	path = exec-envir/utils/disk-mgmt-tool
-	url = https://github.com/xEnVrE/disk-mgmt-tool.git
 [submodule "anrem"]
 	path = anrem
 	url = git@github.com:qwattash/anrem.git
