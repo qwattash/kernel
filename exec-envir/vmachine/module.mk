@@ -20,6 +20,9 @@ $(@>)
 $(call anrem-target, vm-run) : $(@BOOT_VDI) $(@VM_VBOX)
 	VBoxManage startvm $(@VM_NAME) --type sdl
 
+$(call anrem-target, vm-debug) : $(@BOOT_VDI) $(@VM_VBOX)
+	VirtualBox --startvm $(@VM_NAME) --debug
+
 $(call anrem-target, @VM_VBOX) : 
 	VBoxManage createvm --name $(@VM_NAME) --basefolder $(@ABS_CURRENT) --ostype "Other" --register
 	VBoxManage storagectl $(@VM_NAME) --name "sata0" --add sata --portcount 1 --bootable on
