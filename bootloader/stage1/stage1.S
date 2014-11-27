@@ -19,7 +19,7 @@
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
 .equ VBR_BEGIN, 0x7E00
-.equ BOOT_BEGIN, 0x7C00
+.equ BOOT_BEGIN,0x7C00
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -31,11 +31,15 @@
 ### 0x0000:0700  +------------------------------+ 
 ###	         |     DAP			|
 ### 0x0000:0710  +------------------------------+
-###              |     BootLoader free Mem      |
+###              |     Scratch Area             |
+### 0x0000:1000	 +------------------------------+
+###              |     GDT                      |
+### 0x0000:1040	 +------------------------------+
+###              |     Bootloader Free Mem      |
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |
 ### 0x0000:7E00	 +------------------------------+
-###              |     VBR                      |
+###              |     Stage2                   |
 ### 0x9000:0000	 +------------------------------+
 ###              |     Available Stack space    |
 ### 0x9000:7C00	 +------------------------------+
@@ -95,47 +99,13 @@ boot_start:
     ## print welcome message
     movw $welcome,   %ax
     call bios_strprint
-    call get_active_partition
-    movw %ax, %bx
-    shlw $4, %bx
-    # get partion start LBA, little endian
-    # offsets are relative to the segment 0x0000 so add 0x7C00
-    # to the offset relative to the start of the MBR
-    movw 0x7DC8(%bx), %ax 
-    shll $0x10, %eax
-    movw 0x7DC6(%bx), %ax
-    # now check that the LBA is something meaningful
-    # LBA = 0 would reload the MBR, which is nonsense
-    cmpl $0, %eax
-    je vbr_lba_err
-    # check that partition has at least one sector...
-    movl 0x7DCA(%bx), %ecx
-    cmpl $0, %ecx
-    ja vbr_lba_ok
-vbr_lba_err:
-    pushw $err_active_partition # inconsistent entry
-    call error
-vbr_lba_ok:
-    /*########## 
-    # relocate current boot code
-    movw $BOOT_RELOC, %di       # get relocation base address
-    movw $BOOT_BEGIN, %si       # source
-    movw $0x200, %cx            # destination
-    cld
-    rep movsb                   # copy
 
-    # calculate jump address
-    movw $RELOC_LABEL(BOOT_RELOC, BOOT_BEGIN, vbr_load), %bp
-    #jump to relocated code, abs jump to (vbr_load - 0x7C00 + BOOT_RELOC)
-    jmp *%bp
-    #############*/
-    # load VBR
-vbr_load:
+    #load stage2
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
     pushl $VBR_BEGIN            # destination buffer
     pushw $0x01                 # number of sectors to read
-    pushl %eax                  # push LBA
+    pushl $1                    # stage2 starting lba = 1
     pushw %dx                   # push second time for the drive parameter
     call read_sector
     add $0x0c, %sp
@@ -295,14 +265,7 @@ read_error:	.asciz "Read failed. Damn!\r\n"
 
 boot_end:
     ##pad until partition table 
-    .fill 438 - (boot_end - boot_begin)
-jmp_table_start:
-    #jmp *bios_strprint
-    pushw $bios_strprint
-    ret
-    pushw $error
-    ret
-    #jmp *error
+    .fill 446 - (boot_end - boot_begin)
 #7DBE
 pt_entry0:
     .byte 0x00			# pt status
