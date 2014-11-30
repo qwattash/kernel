@@ -6,7 +6,7 @@
 
 # relevant location constants
 #define SCRATCH             0x0710    
-#define INT15_E820_MAGIC   0x534D4150    
+#define INT15_E820_SIG      'SMAP'
     
 .code16
 
@@ -100,31 +100,69 @@ enable_A20:
     #################################################################
 
     #################################################################
-    # ? get_ram_size(void)
-    # Returns the available ram size starting from 0x100000
+    # u_int32 get_ram_size(void)
+    # Returns the available ram size (in bytes) starting from 0x100000
+    # In case of error the carry flag is set
 get_ram_size: 
-    pushw           %bp
-    movw            %sp,%bp
+    pushw %bp
+    movw  %sp, %bp
+    # max memory size set to 0
+    subw  $4, %sp
+    movl  $0,$-4(%bp)
+    
+    # save registers
+    pushl %ebx
+    pushl %edx
+    pushl %ecx
+   
+    pushw %di
     # BIOS int INT 0x15 (EAX=0xE820) (Detects upper memory).
     xor %eax, %eax
     xor %ebx, %ebx
+    # destination buffer is set to the scratch memory zone
     movw $SCRATCH, %di
-    movl $INT15_E820_MAGIC, %edx
+
+1:  
+    # signature as reported in routine documentation (ACPI 5.1 Specs)
+    movl $INT15_E820_SIG, %edx
     movw $0xE820, %ax
-    movk $24, %cx
+    movw $24, %cx
+    clc
+    
     int $0x15
-    # if EAX != 0x534D4150 OR CF != 0 an error occured
+    # if EAX != signature OR CF != 0 the call is not supported
     compl $INT15_E820_MAGIC, %eax
-    jne 1f
-    jc 1f
+    jne 2f
+    jc 2f
+    
     # success
-    
-    jmp 2f
-    
-1:
-    # failure
-    movw $-1, %eax
+    # save BaseAddrLow + LengthLow to EAX (4GiB ought to be enough for anybody)
+    movl 4(%di), %eax
+    addl 8(%di), %eax
+    # check if max_memory_size > EAX
+    compl -4(%bp), %eax
+    jb 4f
+    movl %eax, $-4(%bp)
+4:
+    # increment DI by 24 for the next call
+    addw $24, %di
+
+    # check if we are done
+    cmpl %ebx, $0
+    jnz 1b
+
+    # clear CF for return
+    clc
+    movl $-4(%bp), %eax
+    jmp 3f
 2:
+    # failure
+    stc
+3:
+    popw %di
+    popl %ecx
+    popl %edx
+    popl %ebx
     leave
     ret
     #################################################################
