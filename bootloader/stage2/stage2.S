@@ -1,4 +1,4 @@
-####
+#####
 #
 # stage 2 test
 #
@@ -6,7 +6,7 @@
 
 # relevant location constants
 #define SCRATCH             0x0710    
-#define INT15_E820_SIG      'SMAP'
+#define INT15_E820_SIG      0x534d4150
     
 .code16
 
@@ -17,14 +17,13 @@
 #             
 
 .text
-stage2_start: 
-    movw $welcome_to_st2, %ax
-    call bios_strprint
+stage2_start:     
+    call get_ram_size
 endloop:
     jmp endloop
-welcome_to_st2:	.asciz "Welcome to the magic land of stage 2!" 
 
-       
+
+  /*     
     ## enable A20 Gate
     call enable_A20
     ## print activation outcome
@@ -43,7 +42,7 @@ welcome_to_st2:	.asciz "Welcome to the magic land of stage 2!"
 
     ljmp $0x08,  $next
 
-next:
+/*next:
     .code32
     movw $0x10,  %ax
     movw %ax,        %ds
@@ -71,7 +70,7 @@ check_A20:
     movw $0x2402,   %ax
     int  $0x15
     cmpb $0x0,      %al
-    # if al == 0 an error occured
+    #// if al == 0 an error occured
     jnz 1f
     movw $0x1, %ax
 1:
@@ -90,7 +89,7 @@ enable_A20:
     clc
     movw $0x2401,   %ax
     int $0x15
-    # if CF is set an error occurred
+    #// if CF is set an error occurred
     jnc 1f
     movw $0x1, %ax
 1:
@@ -108,7 +107,7 @@ get_ram_size:
     movw  %sp, %bp
     # max memory size set to 0
     subw  $4, %sp
-    movl  $0,$-4(%bp)
+    movl  $0, -4(%bp)
     
     # save registers
     pushl %ebx
@@ -130,8 +129,8 @@ get_ram_size:
     clc
     
     int $0x15
-    # if EAX != signature OR CF != 0 the call is not supported
-    compl $INT15_E820_MAGIC, %eax
+    #// if EAX != signature OR CF != 0 the call is not supported
+    cmpl $INT15_E820_SIG, %eax
     jne 2f
     jc 2f
     
@@ -140,20 +139,20 @@ get_ram_size:
     movl 4(%di), %eax
     addl 8(%di), %eax
     # check if max_memory_size > EAX
-    compl -4(%bp), %eax
+    cmpl -4(%bp), %eax
     jb 4f
-    movl %eax, $-4(%bp)
+    movl %eax, -4(%bp)
 4:
     # increment DI by 24 for the next call
     addw $24, %di
 
     # check if we are done
-    cmpl %ebx, $0
+    cmpl $0, %ebx
     jnz 1b
 
     # clear CF for return
     clc
-    movl $-4(%bp), %eax
+    movl -4(%bp), %eax
     jmp 3f
 2:
     # failure
@@ -174,40 +173,38 @@ get_ram_size:
     
     #################################################################
     # macro that creates a GDT (or LDT) entry at given index and with given type
-    # void make_gdt_entry(addr_16 gdt_base, u_int_16 index)
-write_temp_gdt:                 #setup a temporary gdt
-                                #starting from 0x01000
-     pushw  %di
-     movw   $0x1000, %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0xFFFF, (%di)
-     add    $2,      %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0x9A00, (%di)
-     add    $2,      %di
-     movw   $0x00CF, (%di)
-     add    $2,      %di
-     movw   $0xFFFF, (%di)
-     add    $2,      %di
-     movw   $0x0,    (%di)
-     add    $2,      %di
-     movw   $0x9200, (%di)
-     add    $2,      %di
-     movw   $0x00CF, (%di)        
-     popw   %di
-     ret
+    # void make_gdt_entry(addr_16 gdt_base, u_int_16 index, SegmentType type)
+    #
+    # enum SegmentType
+    # {
+    #   DATA=1, CODE=2, TSS=4, NULL=0
+    # }
+.macro write_gdt_entry gdt_base, index, type
+    pushl %eax
+    pushl %ebx
+    pushl %ecx
+    pushl %edx
+    pushl %esi
+    pushl %edi
+
+    movl $gdt_base, %eax
+    movl $index, %ebx
+    # esi is set to the destination gdt entry address
+    lea (%eax, %ebx, 8), %esi
+    
+    # fill gdt entry @TODO
+    
+    popl %edi
+    popl %esi
+    popl %edx
+    popl %ecx
+    popl %ebx
+    popl %eax
+.endm
 #################################################################
 
 # GDT data
 gdt_pointer:
 	.word 0x17              #gdt limit
 	.long 0x1000            #gdt base
-*/
+
