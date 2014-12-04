@@ -30,7 +30,7 @@ $(call anrem-target, @HDD_IMG): $(@BOOTLOADER_IMG) $(@HDD_VDI).orig
 	rm -f $@
 	qemu-img convert -f vdi -O raw $(@HDD_VDI) $@
 	$(@DISKMGMT) inject $@ $(@BOOTLOADER_IMG) 0   446 0
-	$(@DISKMGMT) inject $@ $(@BOOTLOADER_IMG) 602 -1  1048666
+	$(@DISKMGMT) inject $@ $(@BOOTLOADER_IMG) 512 -1 512
 
 $(call anrem-target, $(@HDD_VDI).orig) :
 	$(@DISKMGMT) create $(@HDD_IMG) $(@HDDSIZE)

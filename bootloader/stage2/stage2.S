@@ -167,44 +167,123 @@ get_ram_size:
     #################################################################
 
     
-    #
-    # Macro definitions
-    #
-    
     #################################################################
-    # macro that creates a GDT (or LDT) entry at given index and with given type
-    # void make_gdt_entry(addr_16 gdt_base, u_int_16 index, SegmentType type)
-    #
+    # creates a GDT (or LDT) entry at given index and with given type
+    # bool make_gdt_entry(addr_16 gdt_base, u_int_16 index, SegmentType type)
+    #                          ^^                 ^^
     # enum SegmentType
     # {
     #   DATA=1, CODE=2, TSS=4, NULL=0
     # }
-.macro write_gdt_entry gdt_base, index, type
-    pushl %eax
+
+write_gdt_entry:
+    # (REM) gdt_base, index, type
+    pushw %bp
+    movw  %sp,%bp
     pushl %ebx
     pushl %ecx
     pushl %edx
-    pushl %esi
+    pushl %esi 
     pushl %edi
 
-    movl $gdt_base, %eax
-    movl $index, %ebx
+    # gdt_base -> %eax
+    movl 4(%bp), %eax
+    # index -> %ebx
+    movl 8(%bp), %ebx
     # esi is set to the destination gdt entry address
     lea (%eax, %ebx, 8), %esi
+
+    # type-> %al
+    movb 12(%bp), %al
+    # type == 0x00 ?
+    testb %al, %al
+    jz 4f
+    # type == 0x01 ?
+    shr $1, %al
+    test %al, %al
+    jz 1f
+    # type == 0x02 ?
+    shr $1, %al
+    test %al, %al
+    jz 2f
+    # type == 0x04 ?
+    shr $1, %al
+    test %al, %al
+    jz 3f
+    # /else nop
+    jmp 5f
     
-    # fill gdt entry @TODO
+    # /if type == DATA:
+1:
+    # flags same as for CODE segment
+    # TYPE = 0b0110 (bit 11:8) [RW data, expand-down]
+    movl $0x00C09600, %ecx
+    jmp 6f
+
+    # /if type == CODE:
+2:
+    # G = 1 (bit 23) granularity
+    # S = 1 (bit 12) data or code seg.
+    # D/B = 1 (bit 22) always set to 1 for 32bit segments
+    # P = 1 (bit 15) segment present
+    # TYPE = 0b1010 (bit 11:8) [RX code, conforming]
+    movl $0x00C09A00, %ecx
+6:  
+    # base is set to 0x0 and limit to the max memory available
+    # bytes 0:3 [base 15:0, limit 15:0] in %ebx
+    movl $0, %ebx
+    call get_ram_size
+    jc 7f
+    # divide by 4*2^10 = 4KiB to obtain segment limit (given granularity G=1)
+    shr $12, %eax
+    # move segment_limit [15:0] to %bl
+    movb %al, %bl
+    movl %ebx, (%esi)
+
+    # bytes 4:7 [flags and partial base and limit]in %ebx
+    movl $0, %ebx
+    # SEG LIM [19:16] (bit 19:16)
+    movb %ah, %bl
+    shr $16, %ebx
+    orl %ecx, %ebx
+    movl %ebx, 4(%esi)
+    # all the rest is 0x00, both flags and base segment address parts
+    jmp 5f
     
+    # /if type == TSS:
+3:
+    
+    jmp 5f
+
+    # /if type == NULL:
+4:  
+    movl $0, (%esi)
+    movl $0, 4(%esi)
+    jmp 5f
+
+    # /error
+7:  
+    movl $0x00, %eax
+    jmp 8f
+5:
+    movl $0x1, %eax
+8:  
     popl %edi
     popl %esi
     popl %edx
     popl %ecx
     popl %ebx
-    popl %eax
-.endm
+    leave
+    ret
+
 #################################################################
 
+    #
+    # Macro definitions
+    #
+    
 # GDT data
-gdt_pointer:
-	.word 0x17              #gdt limit
-	.long 0x1000            #gdt base
+#gdt_pointer:
+#	.word 0x? #gdt limit
+#	.long 0x? #gdt base
 

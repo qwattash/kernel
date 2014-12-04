@@ -11,7 +11,7 @@ SECTIONS {
 	.text.mbr (0x7c00) : {
 		  bootloader/stage1/stage1.o(.text)
 	}	     
-	.text.vbr (0x7e00) : {
+	.text.st2 (0x7e00) : {
 		  bootloader/stage2/stage2.o(.text)
 	}
 	

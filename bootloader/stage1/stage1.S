@@ -18,7 +18,7 @@
 .equ SEG_BOOT,  0x0000
 .equ SEG_STACK, 0x9000
 .equ INIT_SP,   0xFBFF
-.equ VBR_BEGIN, 0x7E00
+.equ STAGE2_BEGIN, 0x7E00
 .equ BOOT_BEGIN,0x7C00
 
 ### memory map documentation
@@ -103,15 +103,15 @@ boot_start:
     #load stage2
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
-    pushl $VBR_BEGIN            # destination buffer
+    pushl $STAGE2_BEGIN            # destination buffer
     pushw $0x01                 # number of sectors to read
     pushl $1                    # stage2 starting lba = 1
     pushw %dx                   # push second time for the drive parameter
     call read_sector
     add $0x0c, %sp
 	
-    # jump to VBR
-    movw $VBR_BEGIN, %bp
+    # jump to STAGE2
+    movw $STAGE2_BEGIN, %bp
     jmp *%bp
 
 end:	
@@ -258,8 +258,7 @@ vbr_ok:
 ##################################################################
     
 #data strings
-welcome:        .asciz "Welcome to Custom Boot v0\r\n"
-sector2welcome:	.asciz "Welcome to Sector 2\r\n"
+welcome:        .asciz "Welcome to Custom Boot v0.1\r\n"
 err_active_partition:	 .asciz "Active partition error\r\n"
 read_error:	.asciz "Read failed. Damn!\r\n"
 
