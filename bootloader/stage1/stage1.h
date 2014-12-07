@@ -3,10 +3,15 @@
  * @author Alfredo Mazzinghi, Nicola Piga
  */
 
-// address of jump table in the mbr ((0x7DB6)dec = 512 - JumpTable - 4*PartitionTableEntry -MBR_signature)
-#define BOOT_JMP_TABLE 0x7DB6
-// size of an entry in the jump table
-#define BOOT_JMP_ENTRY_SIZE 4
-// address of functions in the jump table
-#define BIOS_STR_PRINT BOOT_JMP_TABLE
-#define ERROR          BOOT_JMP_TABLE + (1 * BOOT_JMP_ENTRY_SIZE)
+// boot segment selector (real mode)
+#define SEG_BOOT 0x0000
+// stack segment selector (real mode)
+#define SEG_STACK 0x9000
+// initial stack pointer (real mode)
+#define INIT_SP 0xFBFF
+// address where the stage 2 bootloader is loaded in memory (real mode)
+#define STAGE2_BEGIN 0x7E00
+// signature that signals the end of the stage2 bootloader (4 bytes)
+#define STAGE2_END_SIGNATURE 0x0000
+// address where the BIOS loads the stage1 bootloader code (real mode)
+#define BOOT_BEGIN 0x7C00

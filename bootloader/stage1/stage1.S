@@ -12,14 +12,6 @@
 
 ## global functions
 .global bios_strprint
-    
-    
-## segments
-.equ SEG_BOOT,  0x0000
-.equ SEG_STACK, 0x9000
-.equ INIT_SP,   0xFBFF
-.equ STAGE2_BEGIN, 0x7E00
-.equ BOOT_BEGIN,0x7C00
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+
@@ -35,6 +27,8 @@
 ### 0x0000:1000	 +------------------------------+
 ###              |     GDT                      |
 ### 0x0000:1040	 +------------------------------+
+###              |     Protected-Mode TSS       |
+### 0x0000:10A8	 +------------------------------+
 ###              |     Bootloader Free Mem      |
 ### 0x0000:7C00	 +------------------------------+
 ###              |     BootLoader .text         |

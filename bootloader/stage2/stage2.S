@@ -4,10 +4,8 @@
 #
 #####
 
-# relevant location constants
-#define SCRATCH             0x0710    
-#define INT15_E820_SIG      0x534d4150
-    
+#include "stage2.h"
+
 .code16
 
 ##
@@ -252,6 +250,36 @@ write_gdt_entry:
     
     # /if type == TSS:
 3:
+    # bytes 0:3 [base 15:0, limit 15:0] in %ebx
+    movl $TSS_BASE, %ebx
+    shl $16, %ebx
+    movl $TSS_LIMIT, %eax
+    movw %ax, %bx
+    movl %ebx, (%esi)
+
+    # the only difference with a code/data segment are
+    # S = 0 (bit 12) system segment
+    # TYPE = 0b1011 (bit 11:8) [32bit TSS Busy]
+    # G = 0 (bit 23) byte granularity
+    # bytes 4:7 [flags and partial base and limit]in %ebx
+
+    # load bit 31:24 of TSS base
+    movl $TSS_BASE, %ebx
+    shr $16, %ebx
+    movb $0, %bl
+    shl $16, %ebx
+    # load bit 23:16 of TSS base
+    movl $TSS_BASE, %eax
+    shr $16, %eax
+    movb $0, %ah
+    movw %ax, %bx
+    # load bit 19:16 of TSS limit
+    movb $TSS_LIMIT, %eax
+    shr $16, %eax
+    orl %eax, %ebx
+    movl $0x00008B00, %ecx
+    orl %ecx, %ebx
+    movl %ebx, 4(%esi)
     
     jmp 5f
 
@@ -277,13 +305,9 @@ write_gdt_entry:
     ret
 
 #################################################################
-
-    #
-    # Macro definitions
-    #
     
 # GDT data
-#gdt_pointer:
-#	.word 0x? #gdt limit
-#	.long 0x? #gdt base
+gdt_pointer:
+	.word GDT_LIMIT
+	.long GDT_BASE
 
