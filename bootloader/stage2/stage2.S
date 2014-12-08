@@ -1,6 +1,6 @@
 #####
 #
-# stage 2 test
+# stage 2
 #
 #####
 
@@ -20,39 +20,64 @@ stage2_start:
 endloop:
     jmp endloop
 
+#TODO:
+# Switch to Protected Mode
 
-  /*     
-    ## enable A20 Gate
-    call enable_A20
-    ## print activation outcome
-    call check_A20
+#Steps
 
-    ## setup the gdt
-    call write_temp_gdt
-    ## load new gdt
-    cli
-    lgdt gdt_pointer
-    
-    ## ==> protected mode
-    mov  %cr0,       %eax
-    or   $0x1,       %al
-    mov  %eax,       %cr0
+# 1. Write GDT
+# index 0 = null
+# index 1 = code segment
+# index 2 = data segment
+# index 3 = tss segment
+# index 4-7 = null
+	
+# 2. A20 Gate
+# call enable_A20 
+# call check_A20
 
-    ljmp $0x08,  $next
+# 3. disable interrupts and possibly NMI
+# cli
+# NMI can be disabled using CMOS external circuitry (bit no.8 of 8-bit port 0x70)
+# void NMI_enable(void)
+# {
+#   outb(0x70, inb(0x70)&0x7F)
+# }
+#void NMI_disable(void)
+# {
+#   outb(0x70, inb(0x70)|0x80)
+# }
 
-/*next:
-    .code32
-    movw $0x10,  %ax
-    movw %ax,        %ds
-    movw %ax,        %es
-    movw %ax,        %fs
-    movw %ax,        %gs
-    movw %ax,        %ss
-    movl $0x90000,   %esp
-    #jump to second stage
-    movl $STAGE_2, %eax
-    jmp *%eax #absolute near jump
-    */
+
+# 4. load gdtr register
+# lgdt gdt_pointer 
+
+# 5. set PE flag in CR0
+# bit 0 = Protected Mode Enable
+# mov %cr0, %eax
+# or $0x1, %al
+# mov %eax, %cr0
+
+# 6. ljmp to next instruction
+# all segment selectors are reset due to ljmp except CS
+# syntax: ljmp new_index_for_CS, new_addres_for_EIP
+# CS[15:3] contains GDT index
+# ljmp $0x08, $next
+# next:
+# .code32
+
+# 7. load the task register (ltr instruction)
+
+# 8. reload remaining segment selectors
+#    movw $0x10, %ax
+#    movw %ax, %ds
+#    movw %ax, %es
+#    movw %ax, %fs
+#    movw %ax, %gs
+#    movw %ax, %ss
+#    movl $STACK_ADDR, %esp
+
+# 9. Call c_main
 
     #
     # cdecl functions
@@ -274,7 +299,7 @@ write_gdt_entry:
     movb $0, %ah
     movw %ax, %bx
     # load bit 19:16 of TSS limit
-    movb $TSS_LIMIT, %eax
+    movl $TSS_LIMIT, %eax
     shr $16, %eax
     orl %eax, %ebx
     movl $0x00008B00, %ecx
@@ -306,7 +331,7 @@ write_gdt_entry:
 
 #################################################################
     
-# GDT data
+# GDT base and limit
 gdt_pointer:
 	.word GDT_LIMIT
 	.long GDT_BASE

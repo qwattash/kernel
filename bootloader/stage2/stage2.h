@@ -3,7 +3,6 @@
  * @author Alfredo Mazzinghi, Nicola Piga
  */
 
-
 // scratch area address
 #define SCRATCH 0x0710
 // signature required for INT15_E820 bios call
@@ -16,3 +15,5 @@
 #define TSS_BASE 0x1040
 // initial protected-mode TSS limit
 #define TSS_LIMIT 0x0067
+// stack initial address (protected mode)
+#define STACK_ADDR 0x90000
