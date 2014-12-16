@@ -11,7 +11,7 @@
 .global start, _start
 
 ## global functions
-.global bios_strprint
+.global bios_strprint, error
 
 ### memory map documentation
 ### 0x0000:0000	 +------------------------------+

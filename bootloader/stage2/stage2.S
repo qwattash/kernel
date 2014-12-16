@@ -16,56 +16,80 @@
 
 .text
 stage2_start:     
-    call get_ram_size
-endloop:
-    jmp endloop
 
-#TODO:
 # Switch to Protected Mode
 
-#Steps
-
-# 1. Write GDT
-# index 0 = null
-# index 1 = code segment
-# index 2 = data segment
-# index 3 = tss segment
-# index 4-7 = null
+# Write GDT
+    # index 0 = null
+    pushl $0x00
+    pushl $0x00
+    pushl $GDT_BASE 
+    call write_gdt_entry
+    addw $0x0C, %sp
+    # index 1 = code segment
+    pushl $0x02
+    pushl $0x01
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    # index 2 = data segment
+    pushl $0x01
+    pushl $0x02
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    # index 3 = tss segment
+    pushl $0x04
+    pushl $0x03
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    # index 4-7 = null
+    pushl $0x00
+    pushl $0x04
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    pushl $0x00
+    pushl $0x05
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    pushl $0x00
+    pushl $0x06
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
 	
-# 2. A20 Gate
-# call enable_A20 
-# call check_A20
+# A20 Gate
+    call enable_A20
+    jc error
+    call check_A20
+    jc error
 
-# 3. disable interrupts and possibly NMI
-# cli
-# NMI can be disabled using CMOS external circuitry (bit no.8 of 8-bit port 0x70)
-# void NMI_enable(void)
-# {
-#   outb(0x70, inb(0x70)&0x7F)
-# }
-#void NMI_disable(void)
-# {
-#   outb(0x70, inb(0x70)|0x80)
-# }
+# disable interrupts
+    cli
 
+# load gdtr register
+    lgdt gdt_pointer 
 
-# 4. load gdtr register
-# lgdt gdt_pointer 
-
-# 5. set PE flag in CR0
+# set PE flag in CR0
 # bit 0 = Protected Mode Enable
-# mov %cr0, %eax
-# or $0x1, %al
-# mov %eax, %cr0
+    mov %cr0, %eax
+    or $0x1, %al
+    mov %eax, %cr0
 
-# 6. ljmp to next instruction
+# ljmp to next instruction
 # all segment selectors are reset due to ljmp except CS
 # syntax: ljmp new_index_for_CS, new_addres_for_EIP
 # CS[15:3] contains GDT index
-# ljmp $0x08, $next
-# next:
-# .code32
+    ljmp $0x08, $next
+next:
+.code32
 
+dbgloop:
+    jmp dbgloop
+    
 # 7. load the task register (ltr instruction)
 
 # 8. reload remaining segment selectors
@@ -95,16 +119,16 @@ check_A20:
     cmpb $0x0,      %al
     #// if al == 0 an error occured
     jnz 1f
-    movw $0x1, %ax
+    stc    
 1:
-    movw $0x0,  %ax
+    clc
     leave
     ret
     #################################################################
     
     #################################################################
     # bool enable_a20(void)
-    # Returns 0 if activation succeded, 1 otherwise.
+    # In case of error (activation failed) the carry flag is set
 enable_A20: 
     pushw           %bp
     movw            %sp,%bp
@@ -113,10 +137,6 @@ enable_A20:
     movw $0x2401,   %ax
     int $0x15
     #// if CF is set an error occurred
-    jnc 1f
-    movw $0x1, %ax
-1:
-    movw $0x0, %ax
     leave
     ret
     #################################################################
@@ -192,8 +212,7 @@ get_ram_size:
     
     #################################################################
     # creates a GDT (or LDT) entry at given index and with given type
-    # bool make_gdt_entry(addr_16 gdt_base, u_int_16 index, SegmentType type)
-    #                          ^^                 ^^
+    # bool make_gdt_entry(addr_32 gdt_base, u_int_32 index, SegmentType type)
     # enum SegmentType
     # {
     #   DATA=1, CODE=2, TSS=4, NULL=0
