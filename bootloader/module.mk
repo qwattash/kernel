@@ -4,7 +4,7 @@ CURRENT := $(call anrem-current-path)
 
 $(<@)
 #define module params
-$(@)OBJS := $(bootloader|stage1)/stage1.o $(bootloader|stage2)/stage2.o
+$(@)OBJS := $(bootloader|stage1)/stage1.o $(bootloader|stage2)/stage2_asm.o $(bootloader|stage2)/stage2_c.o
 $(@)TARGET := $(CURRENT)/bootloader.out
 $(@)LD_MAP := $(CURRENT)/flat_mmap.ld
 $(@>)

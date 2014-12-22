@@ -19,7 +19,7 @@
 ### 0x0000:0400	 +------------------------------+
 ###              |     BIOS                     |
 ### 0x0000:0500	 +------------------------------+
-###              |     free Mem                 |
+###              |     Free Mem                 |
 ### 0x0000:0700  +------------------------------+ 
 ###	         |     DAP			|
 ### 0x0000:0710  +------------------------------+
@@ -35,7 +35,7 @@
 ### 0x0000:7E00	 +------------------------------+
 ###              |     Stage2                   |
 ### 0x9000:0000	 +------------------------------+
-###              |     Available Stack space    |
+###              |     Free Mem                 |
 ### 0x9000:7C00	 +------------------------------+
 ###              |     BootLoader stack         |
 ### 0x9000:FC00	 +------------------------------+
@@ -98,7 +98,7 @@ boot_start:
     popw %dx                    # get saved drive number
     pushw %dx                   # push once to put it again in the stack
     pushl $STAGE2_BEGIN            # destination buffer
-    pushw $0x01                 # number of sectors to read
+    pushw $0x02                 # number of sectors to read
     pushl $1                    # stage2 starting lba = 1
     pushw %dx                   # push second time for the drive parameter
     call read_sector
@@ -252,9 +252,12 @@ vbr_ok:
 ##################################################################
     
 #data strings
-welcome:        .asciz "Welcome to Custom Boot v0.1\r\n"
-err_active_partition:	 .asciz "Active partition error\r\n"
-read_error:	.asciz "Read failed. Damn!\r\n"
+welcome:
+    .asciz "Welcome to Custom Boot v0.1\r\n"
+err_active_partition:
+    .asciz  "Active partition error\r\n"
+read_error:
+    .asciz "Read failed. Damn!\r\n"
 
 boot_end:
     ##pad until partition table 

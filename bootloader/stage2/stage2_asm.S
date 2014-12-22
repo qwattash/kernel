@@ -5,7 +5,7 @@
 #####
 
 #include "stage2.h"
-
+   
 .code16
 
 ##
@@ -60,13 +60,32 @@ stage2_start:
     pushl $GDT_BASE
     call write_gdt_entry
     addw $0x0C, %sp
-	
+    pushl $0x00
+    pushl $0x07
+    pushl $GDT_BASE
+    call write_gdt_entry
+    addw $0x0C, %sp
+    
+# fill the TSS with ESP0/SS0
+    call get_ram_size
+    jc 1f
+    movw $TSS_BASE, %bx
+    movl %eax, 4(%bx)
+    movw $0x10, 8(%bx)
+    jmp 2f
+1:
+    pushw $get_ram_size_error
+    call error
+2:  
 # A20 Gate
     call enable_A20
-    jc error
+    jc 1f
     call check_A20
-    jc error
-
+    jnc 2f
+1:
+    pushw $a20_error
+    call error
+2:  
 # disable interrupts
     cli
 
@@ -87,21 +106,31 @@ stage2_start:
 next:
 .code32
 
-dbgloop:
-    jmp dbgloop
     
-# 7. load the task register (ltr instruction)
+# load the task register
+    movw $0x18, %ax
+    ltr %ax
 
-# 8. reload remaining segment selectors
-#    movw $0x10, %ax
-#    movw %ax, %ds
-#    movw %ax, %es
-#    movw %ax, %fs
-#    movw %ax, %gs
-#    movw %ax, %ss
-#    movl $STACK_ADDR, %esp
-
-# 9. Call c_main
+# reload remaining segment selectors
+    movw $0x10, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+    movw %ax, %ss
+    movl $TSS_BASE, %eax
+    movl 4(%eax), %esp
+    #movl $0x00, 0xfffff
+    #pushl %eax
+    #popl %eax
+dbg:
+    jmp dbg
+    
+# Call c_main
+    call cmain
+endstage:
+    hlt
+    jmp endstage
 
     #
     # cdecl functions
@@ -118,10 +147,10 @@ check_A20:
     int  $0x15
     cmpb $0x0,      %al
     #// if al == 0 an error occured
-    jnz 1f
-    stc    
-1:
     clc
+    jnz 1f
+    stc
+1:
     leave
     ret
     #################################################################
@@ -258,8 +287,8 @@ write_gdt_entry:
     # /if type == DATA:
 1:
     # flags same as for CODE segment
-    # TYPE = 0b0110 (bit 11:8) [RW data, expand-down]
-    movl $0x00C09600, %ecx
+    # TYPE = 0b0110 (bit 11:8) [RW data, expand-up]
+    movl $0x00C09200, %ecx
     jmp 6f
 
     # /if type == CODE:
@@ -303,7 +332,7 @@ write_gdt_entry:
 
     # the only difference with a code/data segment are
     # S = 0 (bit 12) system segment
-    # TYPE = 0b1011 (bit 11:8) [32bit TSS Busy]
+    # TYPE = 0b1011 (bit 11:8) [32bit TSS Free]
     # G = 0 (bit 23) byte granularity
     # bytes 4:7 [flags and partial base and limit]in %ebx
 
@@ -321,7 +350,7 @@ write_gdt_entry:
     movl $TSS_LIMIT, %eax
     shr $16, %eax
     orl %eax, %ebx
-    movl $0x00008B00, %ecx
+    movl $0x00008900, %ecx
     orl %ecx, %ebx
     movl %ebx, 4(%esi)
     
@@ -355,3 +384,8 @@ gdt_pointer:
 	.word GDT_LIMIT
 	.long GDT_BASE
 
+#data strings
+a20_error:    
+    .asciz "Error while enabling A20 pin.\r\n"
+get_ram_size_error:
+    .asciz "Error while estimating max ram size.\r\n"

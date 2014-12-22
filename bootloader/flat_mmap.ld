@@ -11,8 +11,12 @@ SECTIONS {
 	.text.mbr (0x7c00) : {
 		  bootloader/stage1/stage1.o(.text)
 	}	     
-	.text.st2 (0x7e00) : {
-		  bootloader/stage2/stage2.o(.text)
+	.text.st2a (0x7e00) : {
+		  bootloader/stage2/stage2_asm.o(.text)
+	}
+	/*TODO add data, rodata and bss sections for stage2_c.o */
+	.text.st2c : {
+		  bootloader/stage2/stage2_c.o(.text)
 	}
 	
 	/*
