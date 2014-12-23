@@ -105,7 +105,6 @@ stage2_start:
     ljmp $0x08, $next
 next:
 .code32
-
     
 # load the task register
     movw $0x18, %ax
@@ -120,12 +119,7 @@ next:
     movw %ax, %ss
     movl $TSS_BASE, %eax
     movl 4(%eax), %esp
-    #movl $0x00, 0xfffff
-    #pushl %eax
-    #popl %eax
-dbg:
-    jmp dbg
-    
+
 # Call c_main
     call cmain
 endstage:
@@ -287,7 +281,7 @@ write_gdt_entry:
     # /if type == DATA:
 1:
     # flags same as for CODE segment
-    # TYPE = 0b0110 (bit 11:8) [RW data, expand-up]
+    # TYPE = 0b0010 (bit 11:8) [RW data, expand-up]
     movl $0x00C09200, %ecx
     jmp 6f
 
@@ -297,7 +291,7 @@ write_gdt_entry:
     # S = 1 (bit 12) data or code seg.
     # D/B = 1 (bit 22) always set to 1 for 32bit segments
     # P = 1 (bit 15) segment present
-    # TYPE = 0b1010 (bit 11:8) [RX code, conforming]
+    # TYPE = 0b1010 (bit 11:8) [RX code, non-conforming]
     movl $0x00C09A00, %ecx
 6:  
     # base is set to 0x0 and limit to the max memory available
@@ -307,15 +301,17 @@ write_gdt_entry:
     jc 7f
     # divide by 4*2^10 = 4KiB to obtain segment limit (given granularity G=1)
     shr $12, %eax
-    # move segment_limit [15:0] to %bl
-    movb %al, %bl
+
+    # move segment_limit [15:0] to %bx
+    movw %ax, %bx
     movl %ebx, (%esi)
 
     # bytes 4:7 [flags and partial base and limit]in %ebx
     movl $0, %ebx
     # SEG LIM [19:16] (bit 19:16)
-    movb %ah, %bl
-    shr $16, %ebx
+    shr $16, %eax
+    movb %al, %bl
+    shl $16, %ebx
     orl %ecx, %ebx
     movl %ebx, 4(%esi)
     # all the rest is 0x00, both flags and base segment address parts
